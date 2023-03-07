@@ -1,0 +1,230 @@
+{
+  "$anchor": "scoringAssessment-article",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "$patch": {
+    "source": {
+      "$ref": "article"
+    },
+    "with": {
+      "properties": {
+        "_scoring": {
+          "type": "object",
+          "title": "Scoring Assessment",
+          "default": {},
+          "properties": {
+            "_isEnabled": {
+              "type": "boolean",
+              "title": "Enable assessment set",
+              "description": "Determines whether this article is an assessment",
+              "default": false
+            },
+            "_id": {
+              "type": "string",
+              "title": "Assessment ID",
+              "description": "Unique ID for this set. Referenced by other plugins when using the Scoring API"
+            },
+            "title": {
+              "type": "string",
+              "title": "Title",
+              "description": "A title for this set. Not required, but exposed should it be used for reporting purposes",
+              "default": "",
+              "_adapt": {
+                "translatable": true
+              }
+            },
+            "_isScoreIncluded": {
+              "type": "boolean",
+              "title": "Include in overall score",
+              "description": "Determines whether the set should be included in the overall score via the Scoring API",
+              "default": true
+            },
+            "_isCompletionRequired": {
+              "type": "boolean",
+              "title": "Required for score completion",
+              "description": "Determines whether the set should be completed for Scoring API completion",
+              "default": true
+            },
+            "_reset": {
+              "type": "object",
+              "title": "Reset",
+              "description": "The settings used to configure resetting this assessment",
+              "default": {},
+              "properties": {
+                "_scrollTo": {
+                  "type": "boolean",
+                  "title": "Scroll to assessment",
+                  "description": "Determines whether to scroll to this assessment when reset",
+                  "default": false
+                },
+                "_questionsType": {
+                  "type": "string",
+                  "title": "Questions reset type",
+                  "description": "Determines whether the questions will remain completed when reset. A 'soft' reset allows questions to be retaken, but the complete attribute remains set to true. A 'hard' reset requires the question to be completed again. For 'soft', when using trickle, please set the trickle Completion Attribute to '_isInteractionComplete'",
+                  "default": "hard",
+                  "enum": [
+                    "soft",
+                    "hard"
+                  ],
+                  "_backboneForms": "Select"
+                },
+                "_presentationComponentsType": {
+                  "type": "string",
+                  "title": "Presentation components reset type",
+                  "description": "Determines whether the presentation components will remain completed when reset. A 'hard' reset requires the question to be completed again. For 'soft', when using trickle, please set the trickle Completion Attribute to '_isInteractionComplete'",
+                  "default": "soft",
+                  "enum": [
+                    "soft",
+                    "hard"
+                  ],
+                  "_backboneForms": "Select"
+                },
+                "_failed": {
+                  "type": "object",
+                  "title": "Failed",
+                  "description": "The reset settings to apply for a failed assessment",
+                  "default": {},
+                  "properties": {
+                    "_canReset": {
+                      "type": "boolean",
+                      "title": "Can the assessment be reset",
+                      "description": "Determines whether the assessment can be reset",
+                      "default": true
+                    },
+                    "_isResetOnRevisit": {
+                      "type": "boolean",
+                      "title": "Reset state on revisit",
+                      "description": "Determines whether the assessment resets automatically (up to the number of available attempts) when a user revisits the page",
+                      "default": true
+                    }
+                  }
+                },
+                "_passed": {
+                  "type": "object",
+                  "title": "Passed",
+                  "description": "The reset settings to apply for a passed assessment",
+                  "default": {},
+                  "properties": {
+                    "_canReset": {
+                      "type": "boolean",
+                      "title": "Can the assessment be reset",
+                      "description": "Determines whether the assessment can be reset",
+                      "default": true
+                    },
+                    "_isResetOnRevisit": {
+                      "type": "boolean",
+                      "title": "Reset state on revisit",
+                      "description": "Determines whether the assessment resets automatically (up to the number of available attempts) when a user revisits the page",
+                      "default": false
+                    }
+                  }
+                }
+              }
+            },
+            "_passmark": {
+              "type": "object",
+              "title": "Passmark",
+              "description": "The settings used to configure the assessment passmark",
+              "default": {},
+              "properties": {
+                "_isEnabled": {
+                  "type": "boolean",
+                  "title": "Enable passmark",
+                  "description": "Determines whether a passmark is required",
+                  "default": true
+                },
+                "_score": {
+                  "type": "number",
+                  "title": "Score",
+                  "description": "Determines the score required to pass",
+                  "default": 60
+                },
+                "_correctness": {
+                  "type": "number",
+                  "title": "Correctness",
+                  "description": "Determines the correctness (number of correctly answered questions) required to pass",
+                  "default": 60
+                },
+                "_isScaled": {
+                  "type": "boolean",
+                  "title": "Set passmark as percentage",
+                  "description": "Determines whether `_score` and `_correctness` are to be used as raw or percentage values",
+                  "default": true
+                }
+              }
+            },
+            "_attempts": {
+              "type": "object",
+              "title": "Attempts",
+              "description": "The settings used to configure the assessment attempts",
+              "default": {},
+              "properties": {
+                "_limit": {
+                  "type": "number",
+                  "title": "Allowed attempts",
+                  "description": "Determines the number of attempts the user is allowed to complete this assessment. Set to -1 (or 0) to allow infinite attempts",
+                  "default": -1
+                },
+                "_shouldStoreAttempts": {
+                  "type": "boolean",
+                  "title": "Retain attempt history",
+                  "description": "Determines whether the history of all attempts is retained across browser sessions. Requires a suitable tracking plugin to be used",
+                  "default": false
+                }
+              }
+            },
+            "_questions": {
+              "type": "object",
+              "title": "Questions",
+              "description": "The settings used to configure the assessment questions",
+              "default": {},
+              "properties": {
+                "_canShowFeedback": {
+                  "type": "boolean",
+                  "title": "Enable feedback",
+                  "description": "Allows the user to view feedback on their answer",
+                  "default": false
+                },
+                "_canShowMarking": {
+                  "type": "boolean",
+                  "title": "Enable marking",
+                  "description": "Displays ticks and crosses on question completion",
+                  "default": false
+                },
+                "_canShowModelAnswer": {
+                  "type": "boolean",
+                  "title": "Enable correct answer toggle",
+                  "description": "Allows the user to view the 'model answer' should they answer the question incorrectly",
+                  "default": false
+                }
+              }
+            },
+            "_suppressMarking": {
+              "type": "boolean",
+              "title": "Suppress marking until complete",
+              "description": "Determines whether question marking should be delayed until completion of the assessment or until all attempts have been exhausted",
+              "default": true
+            }
+          }
+        },
+        "if": {
+          "properties": {
+            "_isEnabled": {
+              "const": true
+            },
+            "_id": {
+              "type": "string"
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "_id": {
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}

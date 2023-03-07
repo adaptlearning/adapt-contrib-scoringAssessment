@@ -1,0 +1,20 @@
+{
+  "name": "adapt-contrib-scoringAssessment",
+  "version": "0.0.1",
+  "framework": ">=5.20",
+  "homepage": "https://github.com/cgkineo/adapt-contrib-scoringAssessment",
+  "issues": "https://github.com/cgkineo/adapt-contrib-scoringAssessment/issues/new",
+  "extension" : "scoringAssessment",
+  "displayName" : "Scoring Assessment",
+  "description": "An extension attached to an article, used to assess child question components",
+  "main": "/js/adapt-contrib-scoringAssessment.js",
+  "keywords": [
+    "adapt-plugin",
+    "adapt-extension"
+  ],
+  "pluginDependencies": {
+    "adapt-contrib-scoring": ">=0.0.1"
+  },
+  "license": "GPL-3.0",
+  "targetAttribute": "_scoringAssessment"
+}

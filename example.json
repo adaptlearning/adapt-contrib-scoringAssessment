@@ -1,0 +1,37 @@
+// articles.json
+"_scoringAssessment": {
+  "_isEnabled": true,
+  "_id": "assessment-05",
+  "title": "Assessment 1",
+  "_isScoreIncluded": true,
+  "_isCompletionRequired": true,
+  "_reset": {
+    "_scrollTo": false,
+    "_questionsType": "hard",
+    "_presentationComponentsType": "soft",
+    "_failed": {
+      "_canReset": true,
+      "_isResetOnRevisit": true
+    },
+    "_passed": {
+      "_canReset": true,
+      "_isResetOnRevisit": false
+    }
+  },
+  "_passmark": {
+    "_isEnabled": true,
+    "_score": 60,
+    "_correctness": 60,
+    "_isScaled": true
+  },
+  "_attempts": {
+    "_limit": "infinite",
+    "_shouldStoreAttempts": true
+  },
+  "_questions": {
+    "_canShowFeedback": false,
+    "_canShowMarking": false,
+    "_canShowModelAnswer": false
+  },
+  "_suppressMarking": true
+}
