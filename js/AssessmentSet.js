@@ -9,7 +9,8 @@ import Attempt from './Attempt';
 import Marking from './Marking';
 import Reset from './Reset';
 import {
-  hasIntersectingHierarchy
+  hasIntersectingHierarchy,
+  isAvailableInHierarchy
 } from 'extensions/adapt-contrib-scoring/js/adapt-contrib-scoring';
 import ScoringSet from 'extensions/adapt-contrib-scoring/js/ScoringSet';
 import Backbone from 'backbone';
@@ -28,10 +29,9 @@ export default class AssessmentSet extends ScoringSet {
     this._marking = new Marking(this._config?._questions?._canShowMarking, this._config?._suppressMarking);
     this._attempt = new Attempt(this);
     this._attempts = new Attempts(this._config?._attempts, this);
-    this._hasReset = false;
     if (!this.subsetParent) {
-      this._overrideQuestionConfiguration();
-      this._setupBackwardsCompatility();
+      this._setModelsOwnership();
+      this._setupBackwardCompatibility();
     }
     super.initialize({
       ...options,
@@ -52,17 +52,29 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
+   * Set models to be part of the assessment for other plugins
+   * @private
+   */
+  _setModelsOwnership() {
+    const models = this.model.getChildren().models;
+    models.forEach(model => model.setOnChildren({
+      _isPartOfAssessment: true
+    }));
+  }
+
+  /**
+   * Override questions configuration to control marking, feedback and model answers
    * @private
    * @todo Add option to `_suppressFeedback` so user can review once completed and no attempts remaining?
    */
-  _overrideQuestionConfiguration() {
+  _overrideQuestionsConfig() {
     const isMarkingEnabled = this.marking.isEnabled && !(this.marking.isSuppressed && this.attempts.hasRemaining);
-    this.questions.forEach(model => {
+    const config = this._config?._questions;
+    this.rawQuestions.forEach(model => {
       model.set({
-        _canShowFeedback: this._config?._questions?._canShowFeedback ?? false,
+        _canShowFeedback: config?._canShowFeedback ?? false,
         _canShowMarking: isMarkingEnabled,
-        _canShowModelAnswer: isMarkingEnabled && (this._config?._questions?._canShowModelAnswer ?? false),
-        _isPartOfAssessment: true
+        _canShowModelAnswer: isMarkingEnabled && (config?._canShowModelAnswer ?? false)
       }, { pluginName: 'scoringAssessment' });
     });
   }
@@ -73,13 +85,13 @@ export default class AssessmentSet extends ScoringSet {
   _setupListeners() {
     super._setupListeners();
     this.listenTo(Adapt, 'router:location', this.onRouterLocation);
-    this.listenTo(this.model, 'change:_isComplete', this.onModelIsCompleteChange);
+    this.listenTo(this.model, 'reset', this.onModelReset);
   }
 
   /**
    * @private
    */
-  _setupBackwardsCompatility() {
+  _setupBackwardCompatibility() {
     if (!this._isBackwardCompatible) return;
     this.model.getState = () => this._compatibilityState;
     this.model.canResetInPage = () => this.canReset && this.canReload;
@@ -94,7 +106,7 @@ export default class AssessmentSet extends ScoringSet {
     const assessmentMock = {};
     Object.defineProperty(assessmentMock, '_isResetOnRevisit', {
       get: () => {
-        // Allow this value to change, providing compatibility for assessmentResults
+        // allow this value to change, providing compatibility for assessmentResults
         return this.shouldResetOnRevisit;
       }
     });
@@ -108,7 +120,7 @@ export default class AssessmentSet extends ScoringSet {
     const state = {
       id: this._config._id,
       type: 'article-assessment',
-      pageId: this.model.getParent().get('_id'),
+      pageId: this.model.findAncestor('page')?.get('_id'),
       articleId: this.model.get('_id'),
       isEnabled: this._config._isEnabled,
       isComplete: this.isComplete,
@@ -182,11 +194,10 @@ export default class AssessmentSet extends ScoringSet {
     if (!this.canReset) return;
     if (this._isBackwardCompatible) Adapt.trigger('assessments:preReset', this._compatibilityState, this.model);
     Adapt.trigger('scoring:assessment:preReset', this);
-    this.questions.forEach(model => model.reset(this.resetConfig._questionsType, true));
-    this.presentationComponents.forEach(model => model.reset(this.resetConfig._presentationComponentsType, true));
+    this.rawQuestions.forEach(model => model.reset(this.resetConfig._questionsType, true));
+    this.rawPresentationComponents.forEach(model => model.reset(this.resetConfig._presentationComponentsType, true));
     this.attempts.reset(this.hasSoftReset);
     this._attempt = new Attempt(this);
-    this._hasReset = true;
     await Adapt.deferUntilCompletionChecked();
     if (this._isBackwardCompatible) Adapt.trigger('assessments:reset', this._compatibilityState, this.model);
     Adapt.trigger('scoring:assessment:reset', this);
@@ -233,8 +244,7 @@ export default class AssessmentSet extends ScoringSet {
    * @override
    */
   get models() {
-    const models = this.model.getChildren().toArray();
-    return this.filterModels(models);
+    return this.filterModels(this.model.getChildren().models);
   }
 
   /**
@@ -322,7 +332,7 @@ export default class AssessmentSet extends ScoringSet {
    */
   get canReset() {
     const config = this.isPassed ? this.resetConfig.passedConfig : this.resetConfig.failedConfig;
-    return this.isComplete && this.attempts.hasRemaining && config._canReset && !this._hasReset;
+    return this.attempts.hasRemaining && config._canReset;
   }
 
   /**
@@ -355,11 +365,17 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * Returns whether the model is optional
-   * @returns {boolean}
+   * @override
    */
   get isOptional() {
     return this.model.get('_isOptional');
+  }
+
+  /**
+   * @override
+   */
+  get isAvailable() {
+    return isAvailableInHierarchy(this.model);
   }
 
   /**
@@ -367,7 +383,7 @@ export default class AssessmentSet extends ScoringSet {
    * @returns {boolean}
    */
   get isAttemptComplete() {
-    if (this.isAwaitingChildren) return false;
+    if (this.isAwaitingChildren || !this.isAvailable) return false;
     return this.models.every(model => model.get('_isInteractionComplete'));
   }
 
@@ -379,12 +395,9 @@ export default class AssessmentSet extends ScoringSet {
    * @returns {boolean}
    */
   get isComplete() {
-    if (this.isAwaitingChildren) return false;
-    if (this.attempt?.isInSession) {
-      return this.isAttemptComplete;
-    } else if (this.hasSoftReset) {
-      return this.attempts.wasComplete;
-    }
+    if (this.isAwaitingChildren || !this.isAvailable) return false;
+    if (this.attempt?.isInSession) return this.isAttemptComplete;
+    if (this.hasSoftReset) return this.attempts.wasComplete;
     return this.models.every(model => model.get('_isComplete'));
   }
 
@@ -419,11 +432,11 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * @listens AdaptModel#change:_isComplete
+   * @listens AdaptModel#reset
    */
-  onModelIsCompleteChange() {
-    // if associated model has been reset, reset the assessment
-    if (!this.model.get('_isComplete') && this.canReset) this.reset();
+  onModelReset() {
+    if (this.isAwaitingChildren || !this.canReset) return;
+    this.reset();
   }
 
   /**
@@ -436,7 +449,7 @@ export default class AssessmentSet extends ScoringSet {
     const model = location._currentModel;
     if (!hasIntersectingHierarchy([model], this.models)) return;
     if (this.shouldResetOnRevisit) await this.reset();
-    this._hasReset = false;
+    this._overrideQuestionsConfig();
     if (!this.isAttemptComplete) {
       this.attempt.start();
       this.save();
@@ -456,7 +469,7 @@ export default class AssessmentSet extends ScoringSet {
       this.save();
     }
     if (this.marking.isEnabled && this.marking.isSuppressed && !this.attempts.hasRemaining) {
-      this._overrideQuestionConfiguration();
+      this._overrideQuestionsConfig();
       this.questions.forEach(model => model.refresh());
     }
     if (this._isBackwardCompatible) Adapt.trigger('assessments:complete', this._compatibilityState, this.model);

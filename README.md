@@ -80,7 +80,7 @@ The following events are triggered:
 **Adapt#scoring:assessment:reset**<br>
 **Adapt#scoring:assessment:postReset**
 
-For backward compatibility the following events are triggered if [**adapt-contrib-scoring**](https://github.com/adaptlearning/adapt-contrib-scoring) `"_isBackwardCompatible": true`:
+For backward compatibility the following events are triggered if [Scoring](https://github.com/adaptlearning/adapt-contrib-scoring) `"_isBackwardCompatible": true`:
 
 **Adapt#assessments:register**<br>
 **Adapt#assessments:restored**<br>
@@ -91,6 +91,6 @@ For backward compatibility the following events are triggered if [**adapt-contri
 
 ----------------------------
 **Version number:** 0.0.1 (pre-release)<br>
-**Framework versions:** will require a framework update for tracking.js (add version following release)<br>
+**Framework versions:** >=5.28.8<br>
 **Author / maintainer:** Adapt Core Team with [contributors](https://github.com/adaptlearning/adapt-contrib-scoringAssessment/graphs/contributors)<br>
-**Plugin dependenies:** [adapt-contrib-scoring](https://github.com/adaptlearning/adapt-contrib-scoring): ">=0.0.1"
+**Plugin dependenies:** [adapt-contrib-scoring](https://github.com/adaptlearning/adapt-contrib-scoring): ">=1.0.0"
