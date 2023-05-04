@@ -379,12 +379,12 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * Returns whether all models have been completed in the last attempt
+   * Returns whether all components have been completed in the last attempt
    * @returns {boolean}
    */
   get isAttemptComplete() {
     if (this.isAwaitingChildren || !this.isAvailable) return false;
-    return this.models.every(model => model.get('_isInteractionComplete'));
+    return this.trackableComponents.every(model => model.get('_isInteractionComplete'));
   }
 
   /**
@@ -398,7 +398,7 @@ export default class AssessmentSet extends ScoringSet {
     if (this.isAwaitingChildren || !this.isAvailable) return false;
     if (this.attempt?.isInSession) return this.isAttemptComplete;
     if (this.hasSoftReset) return this.attempts.wasComplete;
-    return this.models.every(model => model.get('_isComplete'));
+    return this.trackableComponents.every(model => model.get('_isComplete'));
   }
 
   /**

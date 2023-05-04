@@ -90,7 +90,7 @@ For backward compatibility the following events are triggered if [Scoring](https
 **Adapt#assessments:postReset**
 
 ----------------------------
-**Version number:** 0.0.1 (pre-release)<br>
+**Version number:** 1.0.0<br>
 **Framework versions:** >=5.28.8<br>
 **Author / maintainer:** Adapt Core Team with [contributors](https://github.com/adaptlearning/adapt-contrib-scoringAssessment/graphs/contributors)<br>
 **Plugin dependenies:** [adapt-contrib-scoring](https://github.com/adaptlearning/adapt-contrib-scoring): ">=1.0.0"
