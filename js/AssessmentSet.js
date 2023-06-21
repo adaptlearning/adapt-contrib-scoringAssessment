@@ -203,10 +203,7 @@ export default class AssessmentSet extends ScoringSet {
     await Adapt.deferUntilCompletionChecked();
     if (this._isBackwardCompatible) Adapt.trigger('assessments:reset', this._compatibilityState, this.model);
     super.reset();
-    if (this.canReload) {
-      this.reload();
-      this.attempt.start();
-    }
+    if (this.canReload) this.reload();
     _.defer(() => {
       if (this._isBackwardCompatible) Adapt.trigger('assessments:postReset', this._compatibilityState, this.model);
       Adapt.trigger('scoring:assessment:postReset', this);
@@ -363,7 +360,7 @@ export default class AssessmentSet extends ScoringSet {
   get canReload() {
     const pageId = this.model.findAncestor('page')?.get('_id');
     const locationId = Location._currentId;
-    return (pageId === locationId);
+    return pageId === locationId && this.model.get('_isRendered');
   }
 
   /**
