@@ -198,7 +198,7 @@ export default class AssessmentSet extends ScoringSet {
     Adapt.trigger('scoring:assessment:preReset', this);
     this.rawQuestions.forEach(model => model.reset(this.resetConfig._questionsType, true));
     this.rawPresentationComponents.forEach(model => model.reset(this.resetConfig._presentationComponentsType, true));
-    this.attempts.reset(this.hasSoftReset);
+    this.attempts.reset(this.isSoftReset);
     this._attempt = new Attempt(this);
     await Adapt.deferUntilCompletionChecked();
     if (this._isBackwardCompatible) Adapt.trigger('assessments:reset', this._compatibilityState, this.model);
@@ -352,7 +352,7 @@ export default class AssessmentSet extends ScoringSet {
    * Returns whether all components are configured to "soft" reset
    * @returns {boolean}
    */
-  get hasSoftReset() {
+  get isSoftReset() {
     return (this.questions.length > 0 && this.resetConfig.questionsType === 'soft') && (this.presentationComponents.length > 0 && this.resetConfig.presentationComponentsType === 'soft');
   }
 
@@ -399,7 +399,7 @@ export default class AssessmentSet extends ScoringSet {
   get isComplete() {
     if (this.isAwaitingChildren || !this.isAvailable) return false;
     if (this.attempt?.isInSession) return this.isAttemptComplete;
-    if (this.hasSoftReset) return this.attempts.wasComplete;
+    if (this.isSoftReset) return this.attempts.wasComplete;
     return this.trackableComponents.every(model => model.get('_isComplete'));
   }
 
@@ -414,7 +414,7 @@ export default class AssessmentSet extends ScoringSet {
     const isComplete = this.isComplete;
     if (this.attempt?.isInProgress && !isComplete) return false; // must be completed to pass
     if (!this.passmark.isEnabled && isComplete) return true; // always pass if complete and passmark is disabled
-    if (!this.attempt?.isInSession && this.hasSoftReset) return this.attempts.wasPassed;
+    if (!this.attempt?.isInSession && this.isSoftReset) return this.attempts.wasPassed;
     const isScaled = this.passmark.isScaled;
     const score = (isScaled) ? this.scaledScore : this.score;
     const correctness = (isScaled) ? this.scaledCorrectness : this.correctness;
