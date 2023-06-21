@@ -349,11 +349,11 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * Returns whether the set contains any components configured to "soft" reset
+   * Returns whether all components are configured to "soft" reset
    * @returns {boolean}
    */
   get hasSoftReset() {
-    return (this.questions.length > 0 && this.resetConfig.questionsType === 'soft') || (this.presentationComponents.length > 0 && this.resetConfig.presentationComponentsType === 'soft');
+    return (this.questions.length > 0 && this.resetConfig.questionsType === 'soft') && (this.presentationComponents.length > 0 && this.resetConfig.presentationComponentsType === 'soft');
   }
 
   /**
