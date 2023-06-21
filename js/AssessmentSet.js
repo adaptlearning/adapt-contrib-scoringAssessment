@@ -151,9 +151,10 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * @override
+   * @extends
    * @fires Adapt#assessments:restored
    * @fires Adapt#scoring:assessment:restored
+   * @fires Adapt#scoring:set:restored
    */
   restore() {
     const storedData = OfflineStorage.get(saveStateName)?.[this.id];
@@ -163,7 +164,7 @@ export default class AssessmentSet extends ScoringSet {
       this.attempt.restore(data[1]);
     }
     if (this._isBackwardCompatible) Adapt.trigger('assessments:restored', this._compatibilityState, this.model);
-    Adapt.trigger('scoring:assessment:restored', this);
+    super.restore();
   }
 
   /**
@@ -181,11 +182,12 @@ export default class AssessmentSet extends ScoringSet {
   /**
    * Reset all models as configured.
    * Attempts will only be reset when using a "hard" reset.
-   * @override
+   * @extends
    * @fires Adapt#assessments:preReset
    * @fires Adapt#scoring:assessment:preReset
    * @fires Adapt#assessments:reset
    * @fires Adapt#scoring:assessment:reset
+   * @fires Adapt#scoring:set:reset
    * @fires Adapt#assessments:postReset
    * @fires Adapt#scoring:assessment:postReset
    * @returns {Promise}
@@ -200,7 +202,7 @@ export default class AssessmentSet extends ScoringSet {
     this._attempt = new Attempt(this);
     await Adapt.deferUntilCompletionChecked();
     if (this._isBackwardCompatible) Adapt.trigger('assessments:reset', this._compatibilityState, this.model);
-    Adapt.trigger('scoring:assessment:reset', this);
+    super.reset();
     if (this.canReload) {
       this.reload();
       this.attempt.start();
@@ -460,6 +462,7 @@ export default class AssessmentSet extends ScoringSet {
    * @extends
    * @fires Adapt#assessments:complete
    * @fires Adapt#scoring:assessment:complete
+   * @fires Adapt#scoring:set:complete
    */
   onCompleted() {
     if (this.attempt.isInProgress) {
