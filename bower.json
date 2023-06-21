@@ -4,8 +4,8 @@
   "framework": ">=5.28.8",
   "homepage": "https://github.com/adaptlearning/adapt-contrib-scoringAssessment",
   "issues": "https://github.com/adaptlearning/adapt-contrib-scoringAssessment/issues/new",
-  "extension" : "scoringAssessment",
-  "displayName" : "Scoring Assessment",
+  "extension": "scoringAssessment",
+  "displayName": "Scoring Assessment",
   "description": "An extension attached to an article, used to assess child question components",
   "main": "/js/adapt-contrib-scoringAssessment.js",
   "keywords": [
