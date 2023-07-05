@@ -8,7 +8,7 @@
     },
     "with": {
       "properties": {
-        "_scoring": {
+        "_scoringAssessment": {
           "type": "object",
           "title": "Scoring Assessment",
           "default": {},
@@ -205,22 +205,22 @@
               "description": "Determines whether question marking should be delayed until completion of the assessment or until all attempts have been exhausted",
               "default": true
             }
-          }
-        },
-        "if": {
-          "properties": {
-            "_isEnabled": {
-              "const": true
-            },
-            "_id": {
-              "type": "string"
+          },
+          "if": {
+            "properties": {
+              "_isEnabled": {
+                "const": true
+              },
+              "_id": {
+                "type": "string"
+              }
             }
-          }
-        },
-        "then": {
-          "properties": {
-            "_id": {
-              "minLength": 1
+          },
+          "then": {
+            "properties": {
+              "_id": {
+                "minLength": 1
+              }
             }
           }
         }
