@@ -44,7 +44,7 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * @extends
+   * @override
    */
   register() {
     if (this._isBackwardCompatible) Adapt.trigger('assessments:register', this._compatibilityState, this.model);
@@ -80,7 +80,7 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * @extends
+   * @override
    */
   _setupListeners() {
     super._setupListeners();
@@ -154,6 +154,7 @@ export default class AssessmentSet extends ScoringSet {
    * @override
    * @fires Adapt#assessments:restored
    * @fires Adapt#scoring:assessment:restored
+   * @fires Adapt#scoring:set:restored
    */
   restore() {
     const storedData = OfflineStorage.get(saveStateName)?.[this.id];
@@ -163,11 +164,11 @@ export default class AssessmentSet extends ScoringSet {
       this.attempt.restore(data[1]);
     }
     if (this._isBackwardCompatible) Adapt.trigger('assessments:restored', this._compatibilityState, this.model);
-    Adapt.trigger('scoring:assessment:restored', this);
+    super.restore();
   }
 
   /**
-   * @extends
+   * @override
    */
   update() {
     Logging.debug(`${this.id} minScore: ${this.minScore}, maxScore: ${this.maxScore}`);
@@ -186,6 +187,7 @@ export default class AssessmentSet extends ScoringSet {
    * @fires Adapt#scoring:assessment:preReset
    * @fires Adapt#assessments:reset
    * @fires Adapt#scoring:assessment:reset
+   * @fires Adapt#scoring:set:reset
    * @fires Adapt#assessments:postReset
    * @fires Adapt#scoring:assessment:postReset
    * @returns {Promise}
@@ -196,15 +198,12 @@ export default class AssessmentSet extends ScoringSet {
     Adapt.trigger('scoring:assessment:preReset', this);
     this.rawQuestions.forEach(model => model.reset(this.resetConfig._questionsType, true));
     this.rawPresentationComponents.forEach(model => model.reset(this.resetConfig._presentationComponentsType, true));
-    this.attempts.reset(this.hasSoftReset);
+    this.attempts.reset(this.isSoftReset);
     this._attempt = new Attempt(this);
     await Adapt.deferUntilCompletionChecked();
     if (this._isBackwardCompatible) Adapt.trigger('assessments:reset', this._compatibilityState, this.model);
-    Adapt.trigger('scoring:assessment:reset', this);
-    if (this.canReload) {
-      this.reload();
-      this.attempt.start();
-    }
+    super.reset();
+    if (this.canReload) this.reload();
     _.defer(() => {
       if (this._isBackwardCompatible) Adapt.trigger('assessments:postReset', this._compatibilityState, this.model);
       Adapt.trigger('scoring:assessment:postReset', this);
@@ -256,7 +255,7 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * @extends
+   * @override
    */
   get minScore() {
     if (this.isComplete && !this.attempt?.isInSession) return this.attempts.last.minScore;
@@ -264,7 +263,7 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * @extends
+   * @override
    */
   get maxScore() {
     if (this.isComplete && !this.attempt?.isInSession) return this.attempts.last.maxScore;
@@ -272,7 +271,7 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * @extends
+   * @override
    */
   get score() {
     if (this.isComplete && !this.attempt?.isInSession) return this.attempts.last.score;
@@ -280,7 +279,7 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * @extends
+   * @override
    */
   get correctness() {
     if (this.isComplete && !this.attempt?.isInSession) return this.attempts.last.correctness;
@@ -347,11 +346,15 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * Returns whether the set contains any components configured to "soft" reset
+   * Returns whether all components are configured to "soft" reset
    * @returns {boolean}
    */
-  get hasSoftReset() {
-    return (this.questions.length > 0 && this.resetConfig.questionsType === 'soft') || (this.presentationComponents.length > 0 && this.resetConfig.presentationComponentsType === 'soft');
+  get isSoftReset() {
+    const hasQuestions = this.questions.length > 0;
+    const hasPresentationComponents = this.presentationComponents.length > 0;
+    const hasQuestionsSoftReset = !hasQuestions || this.resetConfig.questionsType === 'soft';
+    const hasPresentationComponentsSoftReset = !hasPresentationComponents || this.resetConfig.presentationComponentsType === 'soft';
+    return hasQuestionsSoftReset && hasPresentationComponentsSoftReset;
   }
 
   /**
@@ -361,7 +364,7 @@ export default class AssessmentSet extends ScoringSet {
   get canReload() {
     const pageId = this.model.findAncestor('page')?.get('_id');
     const locationId = Location._currentId;
-    return (pageId === locationId);
+    return pageId === locationId && this.model.get('_isRendered');
   }
 
   /**
@@ -397,7 +400,7 @@ export default class AssessmentSet extends ScoringSet {
   get isComplete() {
     if (this.isAwaitingChildren || !this.isAvailable) return false;
     if (this.attempt?.isInSession) return this.isAttemptComplete;
-    if (this.hasSoftReset) return this.attempts.wasComplete;
+    if (this.isSoftReset) return this.attempts.wasComplete;
     return this.trackableComponents.every(model => model.get('_isComplete'));
   }
 
@@ -412,7 +415,7 @@ export default class AssessmentSet extends ScoringSet {
     const isComplete = this.isComplete;
     if (this.attempt?.isInProgress && !isComplete) return false; // must be completed to pass
     if (!this.passmark.isEnabled && isComplete) return true; // always pass if complete and passmark is disabled
-    if (!this.attempt?.isInSession && this.hasSoftReset) return this.attempts.wasPassed;
+    if (!this.attempt?.isInSession && this.isSoftReset) return this.attempts.wasPassed;
     const isScaled = this.passmark.isScaled;
     const score = (isScaled) ? this.scaledScore : this.score;
     const correctness = (isScaled) ? this.scaledCorrectness : this.correctness;
@@ -457,9 +460,10 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * @extends
+   * @override
    * @fires Adapt#assessments:complete
    * @fires Adapt#scoring:assessment:complete
+   * @fires Adapt#scoring:set:complete
    */
   onCompleted() {
     if (this.attempt.isInProgress) {
