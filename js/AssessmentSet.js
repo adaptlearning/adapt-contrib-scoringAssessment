@@ -135,7 +135,7 @@ export default class AssessmentSet extends ScoringSet {
       correctToPass: this.passmark.correctness,
       questionCount: this.questions.length,
       isPass: this.isPassed,
-      includeInTotalScore: this._isScoreIncluded,
+      includeInTotalScore: this.isScoreIncluded,
       assessmentWeight: 1,
       attempts: this.attempts.isInfinite ? 'infinite' : this.attempts.limit,
       attemptsSpent: this.attempts.used,
