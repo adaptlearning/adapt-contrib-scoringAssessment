@@ -140,7 +140,7 @@ export default class AssessmentSet extends ScoringSet {
       attempts: this.attempts.isInfinite ? 'infinite' : this.attempts.limit,
       attemptsSpent: this.attempts.used,
       attemptsLeft: this.attempts.isInfinite ? 'infinite' : this.attempts.remaining,
-      attemptInProgress: this.attempt.isInProgress,
+      attemptInProgress: this.attempt?.isInProgress,
       lastAttemptScoreAsPercent: this.attempt?.last?.score ?? 0,
       questions: this.questions.map(model => ({ _id: model.get('_id'), _isCorrect: model.get('_isCorrect') })),
       resetType: this.resetConfig.scoringType,
