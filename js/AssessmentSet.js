@@ -56,8 +56,7 @@ export default class AssessmentSet extends ScoringSet {
    * @private
    */
   _setModelsOwnership() {
-    const models = this.model.getChildren().models;
-    models.forEach(model => model.setOnChildren({
+    this.rawModels.forEach(model => model.setOnChildren({
       _isPartOfAssessment: true
     }));
   }
@@ -242,8 +241,15 @@ export default class AssessmentSet extends ScoringSet {
   /**
    * @override
    */
+  get rawModels() {
+    return this.model.getChildren().models;
+  }
+
+  /**
+   * @override
+   */
   get models() {
-    return this.filterModels(this.model.getChildren().models);
+    return this.filterModels(this.rawModels);
   }
 
   /**
