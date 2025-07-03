@@ -1,4 +1,7 @@
 import data from 'core/js/data';
+import {
+  getScaledScoreFromMinMax
+} from 'extensions/adapt-contrib-scoring/js/adapt-contrib-scoring';
 
 export default class Attempt {
 
@@ -20,9 +23,10 @@ export default class Attempt {
   }
 
   /**
-   * Update the attempt scores
+   * Update the attempt
    */
-  updateScore() {
+  update() {
+    if (!this.isInProgress) return;
     this._minScore = this._assessment.minScore;
     this._maxScore = this._assessment.maxScore;
     this._score = this._assessment.score;
@@ -70,6 +74,7 @@ export default class Attempt {
     this._correctness = 0;
     this._isComplete = false;
     this._isPassed = false;
+    this._questionTrackingPositions = [];
   }
 
   /**
@@ -118,6 +123,14 @@ export default class Attempt {
    */
   get score() {
     return this._score;
+  }
+
+  /**
+   * Returns a percentage score relative to a positive minimum or zero and maximum values
+   * @returns {number}
+   */
+  get scaledScore() {
+    return getScaledScoreFromMinMax(this.score, this.minScore, this.maxScore);
   }
 
   /**
