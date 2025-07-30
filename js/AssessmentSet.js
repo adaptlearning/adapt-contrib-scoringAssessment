@@ -62,12 +62,17 @@ export default class AssessmentSet extends ScoringSet {
     setupBackwardCompatibility(this);
   }
 
+  /**
+   * Fetch the config object from the set model.
+   * @returns {Object}
+   */
   get config() {
     return this.model.get('_scoringAssessment');
   }
 
   /**
-   * @type {AssessmentState}
+   * Create a custom assessment state save and restore object.
+   * @returns {AssessmentState}
    */
   get state() {
     if (this.isIntersectedSet) return null;
@@ -82,33 +87,25 @@ export default class AssessmentSet extends ScoringSet {
     return this.model.get('_requireCompletionOf') === Number.POSITIVE_INFINITY;
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get minScore() {
     if (!this.isIntersectedSet && this.isComplete && !this.attempt?.isInSession) return this.attempts.last.minScore;
     return super.minScore;
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get maxScore() {
     if (!this.isIntersectedSet && this.isComplete && !this.attempt?.isInSession) return this.attempts.last.maxScore;
     return super.maxScore;
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get score() {
     if (!this.isIntersectedSet && this.isComplete && !this.attempt?.isInSession) return this.attempts.last.score;
     return super.score;
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get correctness() {
     if (!this.isIntersectedSet && this.isComplete && !this.attempt?.isInSession) return this.attempts.last.correctness;
     return super.correctness;
@@ -154,9 +151,7 @@ export default class AssessmentSet extends ScoringSet {
     return this._resetConfig;
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get canReset() {
     const config = this.isPassed ? this.resetConfig.passedConfig : this.resetConfig.failedConfig;
     return this.attempts.hasRemaining && config._canReset;
@@ -195,16 +190,12 @@ export default class AssessmentSet extends ScoringSet {
     return pageId === locationId && this.model.get('_isRendered');
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get isOptional() {
     return this.model.get('_isOptional');
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get isAvailable() {
     return isModelAvailableInHierarchy(this.model);
   }
@@ -251,15 +242,14 @@ export default class AssessmentSet extends ScoringSet {
     return isPassed;
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   register() {
     triggerCompatibleRegister(this);
     super.register(this);
   }
 
-  onInit() {
+  /** @override */
+  async onInit() {
     this._setModelsOwnership();
   }
 
@@ -287,6 +277,7 @@ export default class AssessmentSet extends ScoringSet {
     return true;
   }
 
+  /** @override */
   async onStart() {
     this._isInReset = true;
     triggerCompatiblePreReset(this);
@@ -326,9 +317,7 @@ export default class AssessmentSet extends ScoringSet {
     });
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   async onUpdate() {
     await super.onUpdate();
     this.attempt.updateScore();
@@ -339,6 +328,7 @@ export default class AssessmentSet extends ScoringSet {
     if (Adapt.get('_isStarted')) this.state.save();
   }
 
+  /** @override */
   async onVisit() {
     this.attempt.visit();
     if (this.attempt.isInProgress) return;
@@ -368,7 +358,7 @@ export default class AssessmentSet extends ScoringSet {
    * @fires Adapt#scoring:assessment:complete
    * @fires Adapt#scoring:set:complete
    */
-  onCompleted() {
+  async onCompleted() {
     if (this.attempt.isInProgress) {
       this.attempt.end();
       this.attempts.spend();
@@ -380,10 +370,12 @@ export default class AssessmentSet extends ScoringSet {
       this.availableQuestions.forEach(model => model.refresh());
     }
     triggerCompatibleComplete(this);
-    super.onCompleted();
+    await super.onCompleted();
   }
 
+  /** @override */
   async onLeave() {
     this.attempt.leave();
+    await super.onLeave();
   }
 }

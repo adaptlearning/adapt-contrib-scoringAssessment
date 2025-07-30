@@ -19,10 +19,16 @@ export default class Attempt {
     this._isInProgress = true;
   }
 
+  /**
+   * Enter the content object containing the assessment
+   */
   visit() {
     this._isInSession = true;
   }
 
+  /**
+   * Exit the content object containing the assessment
+   */
   leave() {
     this._isInSession = false;
   }
