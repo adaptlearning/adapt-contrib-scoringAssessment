@@ -1,9 +1,10 @@
 import data from 'core/js/data';
+import { hash } from 'extensions/adapt-contrib-scoring/js/adapt-contrib-scoring';
 
 export default class Attempt {
 
   /**
-   * @param {Asessment} assessment The AssessmentSet of the attempt
+   * @param {AssessmentSet} assessment The AssessmentSet of the attempt
    */
   constructor(assessment) {
     this._assessment = assessment;
@@ -15,8 +16,15 @@ export default class Attempt {
    * Start the attempt
    */
   start() {
-    this._isInSession = true;
     this._isInProgress = true;
+  }
+
+  visit() {
+    this._isInSession = true;
+  }
+
+  leave() {
+    this._isInSession = false;
   }
 
   /**
@@ -55,7 +63,7 @@ export default class Attempt {
   }
 
   get questions() {
-    const questionTrackingPositions = this._questionTrackingPositions || this._assessment.questions.map(question => question.trackingPosition);
+    const questionTrackingPositions = this._questionTrackingPositions || this._assessment.availableQuestions.map(question => question.trackingPosition);
     return questionTrackingPositions.map(trackingPosition => data.findByTrackingPosition(trackingPosition));
   }
 
@@ -78,14 +86,6 @@ export default class Attempt {
    */
   get isInSession() {
     return this._isInSession;
-  }
-
-  /**
-   * Set whether the attempt is in session
-   * @param {boolean} value
-   */
-  set isInSession(value) {
-    this._isInSession = value;
   }
 
   /**
@@ -149,7 +149,7 @@ export default class Attempt {
    * @returns {Array}
    */
   get saveState() {
-    this._questionTrackingPositions = this._assessment.questions.map(question => question.trackingPosition);
+    this._questionTrackingPositions = this._assessment.availableQuestions.map(question => question.trackingPosition);
     return [
       [
         this.isInProgress ? 1 : 0,
@@ -162,6 +162,14 @@ export default class Attempt {
       ],
       this._questionTrackingPositions
     ];
+  }
+
+  /**
+   * Hash the state using the 'times 33' hash algorithm.
+   * @return {string}
+   */
+  async hashed() {
+    return hash(this.saveState);
   }
 
 }

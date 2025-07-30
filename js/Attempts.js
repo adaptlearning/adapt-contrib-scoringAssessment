@@ -9,7 +9,7 @@ export default class Attempts {
     this._limit = _limit === 'infinite' ? -1 : parseInt(_limit);
     this._used = 0;
     this._shouldStoreAttempts = _shouldStoreAttempts;
-    this._best;
+    this._best = null;
     this._history = [];
     this._assessment = assessment;
   }
