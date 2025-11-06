@@ -173,7 +173,7 @@ export default class AssessmentSet extends ScoringSet {
     Logging.debug(`${this.id} minScore: ${this.minScore}, maxScore: ${this.maxScore}`);
     Logging.debug(`${this.id} score: ${this.score}, scaledScore: ${this.scaledScore}`);
     Logging.debug(`${this.id} isAttemptComplete: ${this.isAttemptComplete}, isComplete: ${this.isComplete}, isPassed: ${this.isPassed}`);
-    if (this.attempt) this.attempt.updateScore();
+    this.attempt?.update();
     super.update();
     if (Adapt.get('_isStarted')) this.save();
   }
@@ -374,6 +374,15 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
+   * Return the attempt currently being used for the objective
+   * @returns {Attempt}
+   */
+  get objectiveAttempt() {
+    if (this.attempts.used >= 1 && this.isSoftReset) return this.attempts.best;
+    return this.attempt;
+  }
+
+  /**
    * @override
    */
   get isOptional() {
@@ -388,12 +397,29 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
+   * @override
+   */
+  get isStarted() {
+    return this.model.get('_isVisited');
+  }
+
+  /**
    * Returns whether all components have been completed in the last attempt
    * @returns {boolean}
    */
   get isAttemptComplete() {
     if (this.isAwaitingChildren || !this.isAvailable) return false;
     return this.trackableComponents.every(model => model.get('_isInteractionComplete'));
+  }
+
+  /**
+   * Returns whether the objective for the assessment is completed.
+   * A previously completed assessment which has been "soft" reset, will remain completed.
+   * @override
+   * @returns {boolean}
+   */
+  get isObjectiveComplete() {
+    return this.objectiveAttempt.isComplete;
   }
 
   /**
@@ -408,6 +434,16 @@ export default class AssessmentSet extends ScoringSet {
     if (this.attempt?.isInSession) return this.isAttemptComplete;
     if (this.isSoftReset) return this.attempts.wasComplete;
     return this.trackableComponents.every(model => model.get('_isComplete'));
+  }
+
+  /**
+   * Returns whether the objective for the assessment is passed.
+   * A previously completed assessment which has been "soft" reset, will remain passed.
+   * @override
+   * @returns {boolean}
+   */
+  get isObjectivePassed() {
+    return this.objectiveAttempt.isPassed;
   }
 
   /**
@@ -438,6 +474,17 @@ export default class AssessmentSet extends ScoringSet {
       this.attempts.saveState,
       this.attempt.saveState
     ];
+  }
+
+  /**
+   * Complete the assessment objective.
+   * Only update the record with the best attempt when using "soft" reset.
+   * @override
+   */
+  _completeObjective() {
+    if (this.subsetParent || (this.attempts.used > 1 && this.attempt?.isInSession && this.isSoftReset && !this.attempts.isBestAttempt(this.attempt))) return;
+    this._setObjectiveScore();
+    this._setObjectiveStatus();
   }
 
   /**
