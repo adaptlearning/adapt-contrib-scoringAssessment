@@ -1,7 +1,6 @@
 import Adapt from 'core/js/adapt';
 import Router from 'core/js/router';
 import Location from 'core/js/location';
-import Logging from 'core/js/logging';
 import OfflineStorage from 'core/js/offlineStorage';
 import Passmark from './Passmark';
 import Attempts from './Attempts';
@@ -169,12 +168,9 @@ export default class AssessmentSet extends ScoringSet {
   /**
    * @override
    */
-  update() {
-    Logging.debug(`${this.id} minScore: ${this.minScore}, maxScore: ${this.maxScore}`);
-    Logging.debug(`${this.id} score: ${this.score}, scaledScore: ${this.scaledScore}`);
-    Logging.debug(`${this.id} isAttemptComplete: ${this.isAttemptComplete}, isComplete: ${this.isComplete}, isPassed: ${this.isPassed}`);
+  update(updatedModels) {
     this.attempt?.update();
-    super.update();
+    super.update(updatedModels);
     if (Adapt.get('_isStarted')) this.save();
   }
 
@@ -463,6 +459,16 @@ export default class AssessmentSet extends ScoringSet {
     const correctness = (isScaled) ? this.scaledCorrectness : this.correctness;
     const isPassed = score >= this.passmark.score && correctness >= this.passmark.correctness;
     return isPassed;
+  }
+
+  /**
+   * @override
+   */
+  get logData() {
+    return {
+      ...super.logData,
+      isAttemptComplete: this.isAttemptComplete
+    };
   }
 
   /**
