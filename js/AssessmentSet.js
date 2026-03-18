@@ -254,7 +254,7 @@ export default class AssessmentSet extends ScoringSet {
   /** @override */
   register() {
     triggerCompatibleRegister(this);
-    super.register(this);
+    super.register();
   }
 
   /** @override */
