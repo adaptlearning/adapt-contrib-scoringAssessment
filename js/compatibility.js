@@ -47,9 +47,9 @@ export function compatibilityState(assessmentSet) {
     attemptsSpent: assessmentSet.attempts.used,
     attemptsLeft: assessmentSet.attempts.isInfinite ? 'infinite' : assessmentSet.attempts.remaining,
     attemptInProgress: assessmentSet.attempt?.isInProgress,
-    lastAttemptScoreAsPercent: assessmentSet.attempt?.last?.score ?? 0,
+    lastAttemptScoreAsPercent: assessmentSet.attempts?.last?.scaledScore ?? 0,
     questions: assessmentSet.availableQuestions.map(model => ({ _id: model.get('_id'), _isCorrect: model.get('_isCorrect') })),
-    resetType: assessmentSet.resetConfig.scoringType,
+    resetType: assessmentSet.resetConfig.questionsType,
     allowResetIfPassed: assessmentSet.resetConfig.passedConfig._canReset,
     questionModels: new Backbone.Collection(assessmentSet.availableQuestions)
   };
