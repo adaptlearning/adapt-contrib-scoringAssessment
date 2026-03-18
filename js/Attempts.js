@@ -57,12 +57,8 @@ export default class Attempts {
    * @todo Reset best attempt if "hard" reset?
    */
   reset(isSoft = false) {
-    if (this._shouldStoreAttempts) return;
-    if (!isSoft) {
-      this._history = [];
-    } else if (this.history.length > 1) {
-      this._history = this.history.pop();
-    }
+    if (this._shouldStoreAttempts || isSoft) return;
+    this._history = [];
   }
 
   /**

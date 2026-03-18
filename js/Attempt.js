@@ -8,7 +8,6 @@ export default class Attempt {
    */
   constructor(assessment) {
     this._assessment = assessment;
-    this._isInSession = false;
     this.reset();
   }
 
@@ -17,20 +16,6 @@ export default class Attempt {
    */
   start() {
     this._isInProgress = true;
-  }
-
-  /**
-   * Enter the content object containing the assessment
-   */
-  visit() {
-    this._isInSession = true;
-  }
-
-  /**
-   * Exit the content object containing the assessment
-   */
-  leave() {
-    this._isInSession = false;
   }
 
   /**
@@ -84,14 +69,6 @@ export default class Attempt {
     this._correctness = 0;
     this._isComplete = false;
     this._isPassed = false;
-  }
-
-  /**
-   * Returns whether the attempt is in session
-   * @returns {boolean}
-   */
-  get isInSession() {
-    return this._isInSession;
   }
 
   /**

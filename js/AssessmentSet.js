@@ -56,6 +56,7 @@ export default class AssessmentSet extends ScoringSet {
       this._attempt = new Attempt(this);
       this._attempts = new Attempts(this.config?._attempts, this);
     }
+    this._isInSession = false;
     this._isInReset = false;
     if (this.isIntersectedSet) return;
     // no need to setup backward compatibility on intersected sets
@@ -80,6 +81,14 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
+   * Returns whether the assessment is in session
+   * @returns {boolean}
+   */
+  get isInSession() {
+    return this._isInSession;
+  }
+
+  /**
    * Returns whether all models have been added
    * @returns {boolean}
    */
@@ -89,25 +98,25 @@ export default class AssessmentSet extends ScoringSet {
 
   /** @override */
   get minScore() {
-    if (!this.isIntersectedSet && this.isComplete && !this.attempt?.isInSession) return this.attempts.last.minScore;
+    if (!this.isIntersectedSet && this.isComplete && !this.isInSession) return this.attempts.last.minScore;
     return super.minScore;
   }
 
   /** @override */
   get maxScore() {
-    if (!this.isIntersectedSet && this.isComplete && !this.attempt?.isInSession) return this.attempts.last.maxScore;
+    if (!this.isIntersectedSet && this.isComplete && !this.isInSession) return this.attempts.last.maxScore;
     return super.maxScore;
   }
 
   /** @override */
   get score() {
-    if (!this.isIntersectedSet && this.isComplete && !this.attempt?.isInSession) return this.attempts.last.score;
+    if (!this.isIntersectedSet && this.isComplete && !this.isInSession) return this.attempts.last.score;
     return super.score;
   }
 
   /** @override */
   get correctness() {
-    if (!this.isIntersectedSet && this.isComplete && !this.attempt?.isInSession) return this.attempts.last.correctness;
+    if (!this.isIntersectedSet && this.isComplete && !this.isInSession) return this.attempts.last.correctness;
     return super.correctness;
   }
 
@@ -218,7 +227,7 @@ export default class AssessmentSet extends ScoringSet {
    */
   get isComplete() {
     if (this.isAwaitingChildren || !this.isAvailable) return false;
-    if (this.attempt?.isInSession) return this.isAttemptComplete;
+    if (this.isInSession) return this.isAttemptComplete;
     if (this.isSoftReset) return this.attempts.wasComplete;
     return this.availableTrackableComponents.every(model => model.get('_isComplete'));
   }
@@ -234,7 +243,7 @@ export default class AssessmentSet extends ScoringSet {
     const isComplete = this.isComplete;
     if (this.attempt?.isInProgress && !isComplete) return false; // must be completed to pass
     if (!this.passmark.isEnabled && isComplete) return true; // always pass if complete and passmark is disabled
-    if (!this.attempt?.isInSession && this.isSoftReset) return this.attempts.wasPassed;
+    if (!this.isInSession && this.isSoftReset) return this.attempts.wasPassed;
     const isScaled = this.passmark.isScaled;
     const score = (isScaled) ? this.scaledScore : this.score;
     const correctness = (isScaled) ? this.scaledCorrectness : this.correctness;
@@ -330,7 +339,7 @@ export default class AssessmentSet extends ScoringSet {
 
   /** @override */
   async onVisit() {
-    this.attempt.visit();
+    this._isInSession = true;
     if (this.attempt.isInProgress) return;
     if (this._isInReset) return;
     if (this._isReloading) {
@@ -375,7 +384,8 @@ export default class AssessmentSet extends ScoringSet {
 
   /** @override */
   async onLeave() {
-    this.attempt.leave();
+    this._isInSession = false;
     await super.onLeave();
   }
+
 }
