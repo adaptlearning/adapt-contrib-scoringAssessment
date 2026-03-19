@@ -1,7 +1,6 @@
 import Adapt from 'core/js/adapt';
 import Router from 'core/js/router';
 import Location from 'core/js/location';
-import Logging from 'core/js/logging';
 import offlineStorage from 'core/js/offlineStorage';
 import Passmark from './Passmark';
 import Attempts from './Attempts';
@@ -326,14 +325,21 @@ export default class AssessmentSet extends ScoringSet {
     });
   }
 
+  /**
+   * @override
+   */
+  get logData() {
+    return {
+      ...super.logData,
+      isAttemptComplete: this.isAttemptComplete
+    };
+  }
+
   /** @override */
   async onUpdate() {
     await super.onUpdate();
     this.attempt.updateScore();
     if (!hasHashChanged(this, this.attempt.hashed())) return;
-    Logging.debug(`${this.id} minScore: ${this.minScore}, maxScore: ${this.maxScore}`);
-    Logging.debug(`${this.id} score: ${this.score}, scaledScore: ${this.scaledScore}`);
-    Logging.debug(`${this.id} isAttemptComplete: ${this.isAttemptComplete}, isComplete: ${this.isComplete}, isPassed: ${this.isPassed}`);
     if (Adapt.get('_isStarted')) this.state.save();
   }
 

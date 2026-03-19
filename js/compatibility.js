@@ -1,4 +1,6 @@
 import Adapt from 'core/js/adapt';
+import Backbone from 'backbone';
+
 
 export function setupBackwardCompatibility(assessmentSet) {
   if (!assessmentSet._isBackwardCompatible) return;
