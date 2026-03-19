@@ -1,5 +1,8 @@
 import data from 'core/js/data';
-import { hash } from 'extensions/adapt-contrib-scoring/js/adapt-contrib-scoring';
+import {
+  hash,
+  getScaledScoreFromMinMax
+} from 'extensions/adapt-contrib-scoring/js/adapt-contrib-scoring';
 
 export default class Attempt {
 
@@ -101,6 +104,14 @@ export default class Attempt {
    */
   get score() {
     return this._score;
+  }
+
+  /**
+   * Returns a percentage score relative to a positive minimum or zero and maximum values
+   * @returns {number}
+   */
+  get scaledScore() {
+    return getScaledScoreFromMinMax(this.score, this.minScore, this.maxScore);
   }
 
   /**

@@ -30,7 +30,7 @@ export default class Attempts {
    */
   record(attempt) {
     if (!this._shouldStoreAttempts && this.last) this.reset();
-    if (attempt.score > (this.best?.score || Number.MIN_SAFE_INTEGER)) this._best = attempt;
+    if (this.isAttemptBetter(attempt)) this._best = attempt;
     this._history.push(attempt);
   }
 
@@ -59,6 +59,24 @@ export default class Attempts {
   reset(isSoft = false) {
     if (this._shouldStoreAttempts || isSoft) return;
     this._history = [];
+  }
+
+  /**
+   * Returns whether the attempt is better than the current best
+   * @param {Attempt} attempt
+   * @returns {boolean}
+   */
+  isAttemptBetter(attempt) {
+    return attempt.scaledScore > (this.best?.scaledScore ?? Number.NEGATIVE_INFINITY);
+  }
+
+  /**
+   * Returns whether the attempt is the best
+   * @param {Attempt} attempt
+   * @returns {boolean}
+   */
+  isBestAttempt(attempt) {
+    return attempt === this.best;
   }
 
   /**
@@ -111,6 +129,7 @@ export default class Attempts {
 
   /**
    * Returns the last completed attempt
+   * @returns {Attempt}
    */
   get last() {
     return this.history[this.history.length - 1];
@@ -118,6 +137,7 @@ export default class Attempts {
 
   /**
    * Returns the best attempt
+   * @returns {Attempt}
    */
   get best() {
     return this._best;
@@ -128,7 +148,7 @@ export default class Attempts {
    * @returns {boolean}
    */
   get wasComplete() {
-    return this.best?.isComplete ?? this.history.some(attempt => attempt.isComplete);
+    return this.best?.isComplete || this.history.some(attempt => attempt.isComplete);
   }
 
   /**
@@ -136,7 +156,7 @@ export default class Attempts {
    * @returns {boolean}
    */
   get wasPassed() {
-    return this.best?.isPassed ?? this.history.some(attempt => attempt.isPassed);
+    return this.best?.isPassed || this.history.some(attempt => attempt.isPassed);
   }
 
   /**
