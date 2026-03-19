@@ -291,8 +291,8 @@ export default class AssessmentSet extends ScoringSet {
     this._isInReset = true;
     triggerCompatiblePreReset(this);
     Adapt.trigger('scoring:assessment:preReset', this);
-    this.availableQuestions.forEach(model => model.reset(this.resetConfig._questionsType, true));
-    this.availablePresentationComponents.forEach(model => model.reset(this.resetConfig._presentationComponentsType, true));
+    this.availableQuestions.forEach(model => model.reset(this.resetConfig.questionsType, true));
+    this.availablePresentationComponents.forEach(model => model.reset(this.resetConfig.presentationComponentsType, true));
     this.attempts.reset(this.isSoftReset);
     this._attempt = new Attempt(this);
     await Adapt.deferUntilCompletionChecked();
@@ -357,7 +357,7 @@ export default class AssessmentSet extends ScoringSet {
    */
   reload() {
     this._isReloading = true;
-    const id = this.resetConfig._scrollTo ? this.model.get('_id') : Location._currentId;
+    const id = this.resetConfig.scrollTo ? this.model.get('_id') : Location._currentId;
     Router.navigate(`#/id/${id}`, { replace: true, trigger: true });
   }
 
