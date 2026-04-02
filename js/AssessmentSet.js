@@ -8,6 +8,7 @@ import Attempt from './Attempt';
 import Marking from './Marking';
 import Reset from './Reset';
 import AssessmentState from './AssessmentState';
+import AssessmentObjective from './Objective';
 import _ from 'underscore';
 import {
   hasHashChanged,
@@ -199,6 +200,11 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /** @override */
+  get isSubmitted() {
+    return this.availableQuestions.every(model => model.get('_isSubmitted'));
+  }
+
+  /** @override */
   get isOptional() {
     return this.model.get('_isOptional');
   }
@@ -206,6 +212,11 @@ export default class AssessmentSet extends ScoringSet {
   /** @override */
   get isAvailable() {
     return isModelAvailableInHierarchy(this.model);
+  }
+
+  /** @override */
+  get isStarted() {
+    return this.model.get('_isVisited');
   }
 
   /**
@@ -251,6 +262,12 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /** @override */
+  get objective() {
+    if (this.isIntersectedSet) return;
+    return (this._objective = this._objective || new AssessmentObjective({ set: this }));
+  }
+
+  /** @override */
   register() {
     triggerCompatibleRegister(this);
     super.register();
@@ -258,7 +275,9 @@ export default class AssessmentSet extends ScoringSet {
 
   /** @override */
   async onInit() {
+    if (this.isIntersectedSet) return;
     this._setModelsOwnership();
+    super.onInit();
   }
 
   /**
@@ -278,15 +297,26 @@ export default class AssessmentSet extends ScoringSet {
    * @fires Adapt#scoring:set:restored
    */
   async onRestore() {
+    if (this.isIntersectedSet) return;
     const restored = this.state.restore();
+    await super.onRestore();
     if (!restored) return false;
     triggerCompatibleRestored(this);
-    await super.onRestore();
     return true;
   }
 
   /** @override */
   async onStart() {
+    if (this.isIntersectedSet) return;
+    this._overrideQuestionsConfig();
+    this.attempt.start();
+    this.state.save();
+    await super.onStart();
+  }
+
+  /** @override */
+  async onRestart() {
+    if (this.isIntersectedSet) return;
     this._isInReset = true;
     triggerCompatiblePreReset(this);
     Adapt.trigger('scoring:assessment:preReset', this);
@@ -296,16 +326,14 @@ export default class AssessmentSet extends ScoringSet {
     this._attempt = new Attempt(this);
     await Adapt.deferUntilCompletionChecked();
     triggerCompatibleReset(this);
-    this._overrideQuestionsConfig();
-    this.attempt.start();
-    this.state.save();
+    await this.onStart();
     if (this.canReload) this.reload();
     _.defer(() => {
       triggerCompatiblePostReset(this);
       Adapt.trigger('scoring:assessment:postReset', this);
       this._isInReset = false;
     });
-    await super.onStart();
+    await super.onRestart();
   }
 
   /**
@@ -337,14 +365,16 @@ export default class AssessmentSet extends ScoringSet {
 
   /** @override */
   async onUpdate() {
+    if (this.isIntersectedSet) return;
     await super.onUpdate();
-    this.attempt.updateScore();
+    this.attempt.update();
     if (!hasHashChanged(this, this.attempt.hashed())) return;
     if (Adapt.get('_isStarted')) this.state.save();
   }
 
   /** @override */
   async onVisit() {
+    if (this.isIntersectedSet) return;
     this._isInSession = true;
     if (this.attempt.isInProgress) return;
     if (this._isInReset) return;
@@ -374,6 +404,7 @@ export default class AssessmentSet extends ScoringSet {
    * @fires Adapt#scoring:set:complete
    */
   async onCompleted() {
+    if (this.isIntersectedSet) return;
     if (this.attempt.isInProgress) {
       this.attempt.end();
       this.attempts.spend();

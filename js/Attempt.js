@@ -24,7 +24,8 @@ export default class Attempt {
   /**
    * Update the attempt scores
    */
-  updateScore() {
+  update() {
+    if (!this.isInProgress) return;
     this._minScore = this._assessment.minScore;
     this._maxScore = this._assessment.maxScore;
     this._score = this._assessment.score;
@@ -72,6 +73,7 @@ export default class Attempt {
     this._correctness = 0;
     this._isComplete = false;
     this._isPassed = false;
+    this._questionTrackingPositions = [];
   }
 
   /**

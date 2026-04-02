@@ -1,7 +1,6 @@
 import Adapt from 'core/js/adapt';
 import Backbone from 'backbone';
 
-
 export function setupBackwardCompatibility(assessmentSet) {
   if (!assessmentSet._isBackwardCompatible) return;
   assessmentSet.model.getState = () => compatibilityState(assessmentSet);
@@ -77,10 +76,12 @@ export function triggerCompatiblePreReset(assessmentSet) {
   if (!assessmentSet._isBackwardCompatible) return;
   Adapt.trigger('assessments:preReset', compatibilityState(assessmentSet), assessmentSet);
 }
+
 export function triggerCompatibleReset(assessmentSet) {
   if (!assessmentSet._isBackwardCompatible) return;
   Adapt.trigger('assessments:reset', compatibilityState(assessmentSet), assessmentSet);
 }
+
 export function triggerCompatiblePostReset(assessmentSet) {
   if (!assessmentSet._isBackwardCompatible) return;
   Adapt.trigger('assessments:postReset', compatibilityState(assessmentSet), assessmentSet);
