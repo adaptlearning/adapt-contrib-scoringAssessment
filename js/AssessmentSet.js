@@ -8,6 +8,7 @@ import Attempt from './Attempt';
 import Marking from './Marking';
 import Reset from './Reset';
 import AssessmentState from './AssessmentState';
+import AssessmentJournal from './Journal';
 import AssessmentObjective from './Objective';
 import _ from 'underscore';
 import {
@@ -262,6 +263,12 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /** @override */
+  get journal() {
+    if (this.isIntersectedSet) return;
+    return (this._journal = this._journal || new AssessmentJournal({ set: this }));
+  }
+
+  /** @override */
   get objective() {
     if (this.isIntersectedSet) return;
     return (this._objective = this._objective || new AssessmentObjective({ set: this }));
@@ -351,16 +358,6 @@ export default class AssessmentSet extends ScoringSet {
         _canShowModelAnswer: isMarkingEnabled && (config?._canShowModelAnswer ?? false)
       }, { pluginName: 'scoringAssessment' });
     });
-  }
-
-  /**
-   * @override
-   */
-  get logData() {
-    return {
-      ...super.logData,
-      isAttemptComplete: this.isAttemptComplete
-    };
   }
 
   /** @override */
