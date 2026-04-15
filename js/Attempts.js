@@ -55,6 +55,7 @@ export default class Attempts {
    * Reset the attempts unless `_shouldStoreAttempts`.
    * A "soft" reset will maintain the last attempt for maintaining state.
    * @todo Reset best attempt if "hard" reset?
+   * @param {boolean} isSoft
    */
   reset(isSoft = false) {
     if (this._shouldStoreAttempts || isSoft) return;
@@ -68,6 +69,24 @@ export default class Attempts {
    */
   isAttemptBetter(attempt) {
     return attempt.scaledScore > (this.best?.scaledScore ?? Number.NEGATIVE_INFINITY);
+  }
+
+  /**
+   * Returns whether the attempt is the best
+   * @param {Attempt} attempt
+   * @returns {boolean}
+   */
+  isBestAttempt(attempt) {
+    return attempt === this.best;
+  }
+
+  /**
+   * Returns whether the attempt is better than the current best
+   * @param {Attempt} attempt
+   * @returns {boolean}
+   */
+  isAttemptBetter(attempt) {
+    return attempt.scaledScore > (this.best?.scaledScore || Number.MIN_SAFE_INTEGER);
   }
 
   /**

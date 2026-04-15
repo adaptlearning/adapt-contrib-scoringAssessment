@@ -22,7 +22,7 @@ export default class Attempt {
   }
 
   /**
-   * Update the attempt scores
+   * Update the attempt
    */
   update() {
     if (!this.isInProgress) return;
