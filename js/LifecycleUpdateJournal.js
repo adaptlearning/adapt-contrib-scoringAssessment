@@ -1,8 +1,8 @@
 import {
-  Journal
+  LifecycleUpdateJournal
 } from 'extensions/adapt-contrib-scoring/js/adapt-contrib-scoring';
 
-export default class AssessmentJournal extends Journal {
+export default class AssessmentLifecycleUpdateJournal extends LifecycleUpdateJournal {
 
   /** @override */
   get setData() {
