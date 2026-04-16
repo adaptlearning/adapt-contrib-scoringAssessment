@@ -2,7 +2,6 @@ import Adapt from 'core/js/adapt';
 import Router from 'core/js/router';
 import Location from 'core/js/location';
 import offlineStorage from 'core/js/offlineStorage';
-import Passmark from './Passmark';
 import Attempts from './Attempts';
 import Attempt from './Attempt';
 import Marking from './Marking';
@@ -14,7 +13,8 @@ import _ from 'underscore';
 import {
   hasHashChanged,
   isModelAvailableInHierarchy,
-  ScoringSet
+  ScoringSet,
+  Passmark
 } from 'extensions/adapt-contrib-scoring/js/adapt-contrib-scoring';
 import {
   setupBackwardCompatibility,
@@ -201,11 +201,6 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /** @override */
-  get isSubmitted() {
-    return this.availableQuestions.every(model => model.get('_isSubmitted'));
-  }
-
-  /** @override */
   get isOptional() {
     return this.model.get('_isOptional');
   }
@@ -284,7 +279,7 @@ export default class AssessmentSet extends ScoringSet {
   async onInit() {
     if (this.isIntersectedSet) return;
     this._setModelsOwnership();
-    super.onInit();
+    await super.onInit();
   }
 
   /**
