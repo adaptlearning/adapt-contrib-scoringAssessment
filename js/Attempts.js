@@ -81,24 +81,6 @@ export default class Attempts {
   }
 
   /**
-   * Returns whether the attempt is better than the current best
-   * @param {Attempt} attempt
-   * @returns {boolean}
-   */
-  isAttemptBetter(attempt) {
-    return attempt.scaledScore > (this.best?.scaledScore || Number.MIN_SAFE_INTEGER);
-  }
-
-  /**
-   * Returns whether the attempt is the best
-   * @param {Attempt} attempt
-   * @returns {boolean}
-   */
-  isBestAttempt(attempt) {
-    return attempt === this.best;
-  }
-
-  /**
    * Returns the number of attempts allowed
    * @returns {number}
    */

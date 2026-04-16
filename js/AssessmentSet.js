@@ -8,7 +8,7 @@ import Attempt from './Attempt';
 import Marking from './Marking';
 import Reset from './Reset';
 import AssessmentState from './AssessmentState';
-import AssessmentJournal from './Journal';
+import AssessmentLifecycleUpdateJournal from './LifecycleUpdateJournal';
 import AssessmentObjective from './Objective';
 import _ from 'underscore';
 import {
@@ -265,7 +265,7 @@ export default class AssessmentSet extends ScoringSet {
   /** @override */
   get journal() {
     if (this.isIntersectedSet) return;
-    return (this._journal = this._journal || new AssessmentJournal({ set: this }));
+    return (this._journal = this._journal || new AssessmentLifecycleUpdateJournal({ set: this }));
   }
 
   /** @override */
