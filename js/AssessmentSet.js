@@ -305,17 +305,17 @@ export default class AssessmentSet extends ScoringSet {
    */
   async onRestore() {
     if (this.isIntersectedSet) return;
-    const restored = this.state.restore();
+    const isRestored = this.state.restore();
+    this._overrideQuestionsConfig();
     await super.onRestore();
-    if (!restored) return false;
     triggerCompatibleRestored(this);
+    if (!isRestored) return false;
     return true;
   }
 
   /** @override */
   async onStart() {
     if (this.isIntersectedSet) return;
-    this._overrideQuestionsConfig();
     this.attempt.start();
     this.state.save();
     await super.onStart();
