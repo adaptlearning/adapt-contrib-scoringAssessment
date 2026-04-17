@@ -221,7 +221,8 @@ export default class AssessmentSet extends ScoringSet {
    */
   get isAttemptComplete() {
     if (this.isAwaitingChildren || !this.isAvailable) return false;
-    return this.availableTrackableComponents.every(model => model.get('_isInteractionComplete'));
+    const availableTrackableComponents = this.availableTrackableComponents;
+    return availableTrackableComponents.length > 0 && availableTrackableComponents.every(model => model.get('_isInteractionComplete'));
   }
 
   /**
@@ -235,7 +236,8 @@ export default class AssessmentSet extends ScoringSet {
     if (this.isAwaitingChildren || !this.isAvailable) return false;
     if (this.isInSession) return this.isAttemptComplete;
     if (this.isSoftReset) return this.attempts.wasComplete;
-    return this.availableTrackableComponents.every(model => model.get('_isComplete'));
+    const availableTrackableComponents = this.availableTrackableComponents;
+    return availableTrackableComponents.length > 0 && availableTrackableComponents.every(model => model.get('_isComplete'));
   }
 
   /**
