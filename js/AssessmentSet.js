@@ -7,9 +7,8 @@ import Attempt from './Attempt';
 import Marking from './Marking';
 import Reset from './Reset';
 import AssessmentState from './AssessmentState';
-import AssessmentLifecycleUpdateJournal from './LifecycleUpdateJournal';
+import AssessmentUpdateJournal from './AssessmentUpdateJournal';
 import AssessmentObjective from './Objective';
-import _ from 'underscore';
 import {
   hasHashChanged,
   isModelAvailableInHierarchy,
@@ -25,6 +24,7 @@ import {
   triggerCompatibleReset,
   triggerCompatiblePostReset
 } from './compatibility';
+import _ from 'underscore';
 
 export default class AssessmentSet extends ScoringSet {
 
@@ -260,7 +260,7 @@ export default class AssessmentSet extends ScoringSet {
   /** @override */
   get journal() {
     if (this.isIntersectedSet) return;
-    return (this._journal = this._journal || new AssessmentLifecycleUpdateJournal({ set: this }));
+    return (this._journal = this._journal || new AssessmentUpdateJournal({ set: this }));
   }
 
   /** @override */
