@@ -41,7 +41,7 @@ export function compatibilityState(assessmentSet) {
     correctAsPercent: assessmentSet.scaledCorrectness,
     correctToPass: assessmentSet.passmark.correctness,
     questionCount: assessmentSet.availableQuestions.length,
-    isPass: assessmentSet.isPassed,
+    isPass: assessmentSet.isPassed ?? assessmentSet.isComplete,
     includeInTotalScore: assessmentSet.isScoreIncluded,
     assessmentWeight: 1,
     attempts: assessmentSet.attempts.isInfinite ? 'infinite' : assessmentSet.attempts.limit,

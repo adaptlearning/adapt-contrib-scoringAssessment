@@ -226,11 +226,9 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * Returns whether the assessment is completed.
+   * @override
    * A previously completed assessment which has been "soft" reset, will be deemed completed when not in session.
    * When an attempt is currently in session, it will return that attempt value for use in `ScoringSet.update`.
-   * @override
-   * @returns {boolean}
    */
   get isComplete() {
     if (this.isAwaitingChildren || !this.isAvailable) return false;
@@ -241,22 +239,20 @@ export default class AssessmentSet extends ScoringSet {
   }
 
   /**
-   * Returns whether the configured passmark has been achieved.
+   * @override
+   * If passmark is disabled, don't evaluate.
    * A previously completed assessment which has been "soft" reset, will be deemed passed when not in session.
    * When an attempt is currently in session, it will return that attempt value for use in `ScoringSet.update`.
-   * @override
-   * @returns {boolean}
+   * @returns {boolean|null}
    */
   get isPassed() {
-    const isComplete = this.isComplete;
-    if (this.attempt?.isInProgress && !isComplete) return false; // must be completed to pass
-    if (!this.passmark.isEnabled && isComplete) return true; // always pass if complete and passmark is disabled
+    if (!this.hasPassmark) return null;
+    if (this.attempt?.isInProgress && !this.isComplete) return false; // must be completed to pass
     if (!this.isInSession && this.isSoftReset) return this.attempts.wasPassed;
     const isScaled = this.passmark.isScaled;
     const score = (isScaled) ? this.scaledScore : this.score;
     const correctness = (isScaled) ? this.scaledCorrectness : this.correctness;
-    const isPassed = score >= this.passmark.score && correctness >= this.passmark.correctness;
-    return isPassed;
+    return score >= this.passmark.score && correctness >= this.passmark.correctness;
   }
 
   /** @override */

@@ -47,14 +47,17 @@ export default class Attempt {
    */
   restore(data) {
     const attemptData = data[0];
+    const attemptPassedData = attemptData[6];
     this._questionTrackingPositions = data[1];
-    this._isInProgress = (attemptData[0] === 1);
+    this._isInProgress = Boolean(attemptData[0]);
     this._minScore = attemptData[1];
     this._maxScore = attemptData[2];
     this._score = attemptData[3];
     this._correctness = attemptData[4];
-    this._isComplete = (attemptData[5] === 1);
-    this._isPassed = (attemptData[6] === 1);
+    this._isComplete = Boolean(attemptData[5]);
+    this._isPassed = attemptPassedData === -1
+      ? null
+      : Boolean(attemptPassedData);
   }
 
   get questions() {
@@ -133,8 +136,9 @@ export default class Attempt {
   }
 
   /**
-   * Returns whether the attempt is passed
-   * @returns {boolean}
+   * Returns whether the attempt is passed.
+   * Returns null if the attempt was recorded when passmark was disabled.
+   * @returns {boolean|null}
    */
   get isPassed() {
     return this._isPassed;
@@ -145,6 +149,7 @@ export default class Attempt {
    * @returns {Array}
    */
   get saveState() {
+    const isPassed = this.isPassed;
     this._questionTrackingPositions = this._assessment.availableQuestions.map(question => question.trackingPosition);
     return [
       [
@@ -154,7 +159,9 @@ export default class Attempt {
         this.score,
         this.correctness,
         this.isComplete ? 1 : 0,
-        this.isPassed ? 1 : 0
+        isPassed === null
+          ? -1
+          : (isPassed ? 1 : 0)
       ],
       this._questionTrackingPositions
     ];
