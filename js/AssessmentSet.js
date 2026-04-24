@@ -356,8 +356,8 @@ export default class AssessmentSet extends ScoringSet {
   /** @override */
   async onUpdate() {
     if (this.isIntersectedSet) return;
-    await super.onUpdate();
     this.attempt.update();
+    await super.onUpdate();
     if (!hasHashChanged(this, this.attempt.hashed())) return;
     if (Adapt.get('_isStarted')) this.state.save();
   }
