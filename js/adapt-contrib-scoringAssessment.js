@@ -2,6 +2,7 @@ import Adapt from 'core/js/adapt';
 import Data from 'core/js/data';
 import AssessmentSet from './AssessmentSet';
 import Scoring from 'extensions/adapt-contrib-scoring/js/adapt-contrib-scoring';
+import Backbone from 'backbone';
 
 class ScoringAssessment extends Backbone.Controller {
 

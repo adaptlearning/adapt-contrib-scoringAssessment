@@ -58,12 +58,8 @@ export default class Attempts {
    * @param {boolean} isSoft
    */
   reset(isSoft = false) {
-    if (this._shouldStoreAttempts) return;
-    if (!isSoft) {
-      this._history = [];
-    } else if (this.history.length > 1) {
-      this._history = this.history.pop();
-    }
+    if (this._shouldStoreAttempts || isSoft) return;
+    this._history = [];
   }
 
   /**
@@ -72,7 +68,7 @@ export default class Attempts {
    * @returns {boolean}
    */
   isAttemptBetter(attempt) {
-    return attempt.scaledScore > (this.best?.scaledScore || Number.MIN_SAFE_INTEGER);
+    return attempt.scaledScore > (this.best?.scaledScore ?? Number.NEGATIVE_INFINITY);
   }
 
   /**
@@ -134,8 +130,8 @@ export default class Attempts {
 
   /**
    * Returns the last completed attempt
-  * @returns {Attempt}
-  */
+   * @returns {Attempt}
+   */
   get last() {
     return this.history[this.history.length - 1];
   }
@@ -153,7 +149,7 @@ export default class Attempts {
    * @returns {boolean}
    */
   get wasComplete() {
-    return this.best?.isComplete ?? this.history.some(attempt => attempt.isComplete);
+    return this.best?.isComplete || this.history.some(attempt => attempt.isComplete);
   }
 
   /**
@@ -161,7 +157,7 @@ export default class Attempts {
    * @returns {boolean}
    */
   get wasPassed() {
-    return this.best?.isPassed ?? this.history.some(attempt => attempt.isPassed);
+    return this.best?.isPassed || this.history.some(attempt => attempt.isPassed);
   }
 
   /**

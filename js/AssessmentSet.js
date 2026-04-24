@@ -1,251 +1,92 @@
 import Adapt from 'core/js/adapt';
 import Router from 'core/js/router';
 import Location from 'core/js/location';
-import OfflineStorage from 'core/js/offlineStorage';
-import Passmark from './Passmark';
+import offlineStorage from 'core/js/offlineStorage';
 import Attempts from './Attempts';
 import Attempt from './Attempt';
 import Marking from './Marking';
 import Reset from './Reset';
+import AssessmentState from './AssessmentState';
+import AssessmentUpdateJournal from './AssessmentUpdateJournal';
+import AssessmentObjective from './Objective';
 import {
-  hasIntersectingHierarchy,
-  isAvailableInHierarchy
+  hasHashChanged,
+  isModelAvailableInHierarchy,
+  ScoringSet,
+  Passmark
 } from 'extensions/adapt-contrib-scoring/js/adapt-contrib-scoring';
-import ScoringSet from 'extensions/adapt-contrib-scoring/js/ScoringSet';
-import Backbone from 'backbone';
+import {
+  setupBackwardCompatibility,
+  triggerCompatibleComplete,
+  triggerCompatibleRegister,
+  triggerCompatibleRestored,
+  triggerCompatiblePreReset,
+  triggerCompatibleReset,
+  triggerCompatiblePostReset
+} from './compatibility';
 import _ from 'underscore';
-
-const saveStateName = 'sas';
 
 export default class AssessmentSet extends ScoringSet {
 
-  initialize(options = {}, subsetParent = null) {
-    this._isBackwardCompatible = options._isBackwardCompatible ?? false;
-    this._model = options.model;
-    this._config = this.model.get('_scoringAssessment');
-    this._resetConfig = new Reset(this._config?._reset);
-    this._passmark = new Passmark(this._config?._passmark);
-    this._marking = new Marking(this._config?._questions?._canShowMarking, this._config?._suppressMarking);
-    this._attempt = new Attempt(this);
-    this._attempts = new Attempts(this._config?._attempts, this);
-    if (!this.subsetParent) {
-      this._setModelsOwnership();
-      this._setupBackwardCompatibility();
-    }
+  initialize(options = {}) {
+    const {
+      _id,
+      _isScoreIncluded,
+      _isCompletionRequired
+    } = (options._model ?? options.model).get('_scoringAssessment');
     super.initialize({
       ...options,
-      _id: this._config._id,
-      title: this._config.title,
+      _id,
+      _title: (options._title ?? options.title),
       _type: 'assessment',
-      _isScoreIncluded: this._config._isScoreIncluded ?? false,
-      _isCompletionRequired: this._config._isCompletionRequired ?? false
-    }, subsetParent);
-  }
-
-  /**
-   * @override
-   */
-  register() {
-    if (this._isBackwardCompatible) Adapt.trigger('assessments:register', this._compatibilityState, this.model);
-    super.register(this);
-  }
-
-  /**
-   * Set models to be part of the assessment for other plugins
-   * @private
-   */
-  _setModelsOwnership() {
-    this.rawModels.forEach(model => model.setOnChildren({
-      _isPartOfAssessment: true
-    }));
-  }
-
-  /**
-   * Override questions configuration to control marking, feedback and model answers
-   * @private
-   * @todo Add option to `_suppressFeedback` so user can review once completed and no attempts remaining?
-   */
-  _overrideQuestionsConfig() {
-    const isMarkingEnabled = this.marking.isEnabled && !(this.marking.isSuppressed && this.attempts.hasRemaining);
-    const config = this._config?._questions;
-    this.rawQuestions.forEach(model => {
-      model.set({
-        _canShowFeedback: config?._canShowFeedback ?? false,
-        _canShowMarking: isMarkingEnabled,
-        _canShowModelAnswer: isMarkingEnabled && (config?._canShowModelAnswer ?? false)
-      }, { pluginName: 'scoringAssessment' });
+      _isScoreIncluded: _isScoreIncluded ?? false,
+      _isCompletionRequired: _isCompletionRequired ?? false
     });
-  }
-
-  /**
-   * @override
-   */
-  _setupListeners() {
-    super._setupListeners();
-    this.listenTo(Adapt, 'router:location', this.onRouterLocation);
-    this.listenTo(this.model, 'reset', this.onModelReset);
-  }
-
-  /**
-   * @private
-   */
-  _setupBackwardCompatibility() {
-    if (!this._isBackwardCompatible) return;
-    this.model.getState = () => this._compatibilityState;
-    this.model.canResetInPage = () => this.canReset && this.canReload;
-    const originalReset = this.model.reset;
-    this.model.reset = (force, done) => {
-      if (force === false) return;
-      this.reset().then(() => {
-        typeof done === 'function' && done(true);
-        originalReset.call(this.model, force);
-      });
-    };
-    const assessmentMock = {};
-    Object.defineProperty(assessmentMock, '_isResetOnRevisit', {
-      get: () => {
-        // allow this value to change, providing compatibility for assessmentResults
-        return this.shouldResetOnRevisit;
-      }
-    });
-    this.model.set('_assessment', assessmentMock);
-  }
-
-  /**
-   * @private
-   */
-  get _compatibilityState() {
-    const state = {
-      id: this._config._id,
-      type: 'article-assessment',
-      pageId: this.model.findAncestor('page')?.get('_id'),
-      articleId: this.model.get('_id'),
-      isEnabled: this._config._isEnabled,
-      isComplete: this.isComplete,
-      isPercentageBased: this.passmark.isScaled,
-      scoreToPass: this.passmark.score,
-      score: this.score,
-      scoreAsPercent: this.scaledScore,
-      minScore: this.minScore,
-      maxScore: this.maxScore,
-      correctCount: this.correctness,
-      correctAsPercent: this.scaledCorrectness,
-      correctToPass: this.passmark.correctness,
-      questionCount: this.questions.length,
-      isPass: this.isPassed,
-      includeInTotalScore: this.isScoreIncluded,
-      assessmentWeight: 1,
-      attempts: this.attempts.isInfinite ? 'infinite' : this.attempts.limit,
-      attemptsSpent: this.attempts.used,
-      attemptsLeft: this.attempts.isInfinite ? 'infinite' : this.attempts.remaining,
-      attemptInProgress: this.attempt?.isInProgress,
-      lastAttemptScoreAsPercent: this.attempt?.last?.score ?? 0,
-      questions: this.questions.map(model => ({ _id: model.get('_id'), _isCorrect: model.get('_isCorrect') })),
-      resetType: this.resetConfig.scoringType,
-      allowResetIfPassed: this.resetConfig.passedConfig._canReset,
-      questionModels: new Backbone.Collection(this.questions)
-    };
-    return state;
-  }
-
-  /**
-   * @override
-   * @fires Adapt#assessments:restored
-   * @fires Adapt#scoring:assessment:restored
-   * @fires Adapt#scoring:set:restored
-   */
-  restore() {
-    const storedData = OfflineStorage.get(saveStateName)?.[this.id];
-    if (storedData) {
-      const data = OfflineStorage.deserialize(storedData);
-      this.attempts.restore(data[0]);
-      this.attempt.restore(data[1]);
+    this._isBackwardCompatible = options._isBackwardCompatible ?? false;
+    if (this.isIntersectedSet) {
+      // copy from existing instance
+      this._resetConfig = options._resetConfig;
+      this._passmark = options._passmark;
+      this._marking = options._marking;
+      this._attempt = options._attempt;
+      this._attempts = options._attempts;
+    } else {
+      this._resetConfig = new Reset(this.config?._reset);
+      this._passmark = new Passmark(this.config?._passmark);
+      this._marking = new Marking(this.config?._questions?._canShowMarking, this.config?._suppressMarking);
+      this._attempt = new Attempt(this);
+      this._attempts = new Attempts(this.config?._attempts, this);
     }
-    if (this._isBackwardCompatible) Adapt.trigger('assessments:restored', this._compatibilityState, this.model);
-    super.restore();
+    this._isInSession = false;
+    this._isInReset = false;
+    if (this.isIntersectedSet) return;
+    // no need to setup backward compatibility on intersected sets
+    setupBackwardCompatibility(this);
   }
 
   /**
-   * @override
+   * Fetch the config object from the set model.
+   * @returns {Object}
    */
-  update(updatedModels) {
-    this.attempt?.update();
-    super.update(updatedModels);
-    if (Adapt.get('_isStarted')) this.save();
+  get config() {
+    return this.model.get('_scoringAssessment');
   }
 
   /**
-   * Reset all models as configured.
-   * Attempts will only be reset when using a "hard" reset.
-   * @override
-   * @fires Adapt#assessments:preReset
-   * @fires Adapt#scoring:assessment:preReset
-   * @fires Adapt#assessments:reset
-   * @fires Adapt#scoring:assessment:reset
-   * @fires Adapt#scoring:set:reset
-   * @fires Adapt#assessments:postReset
-   * @fires Adapt#scoring:assessment:postReset
-   * @returns {Promise}
+   * Create a custom assessment state save and restore object.
+   * @returns {AssessmentState}
    */
-  async reset() {
-    if (!this.canReset) return;
-    if (this._isBackwardCompatible) Adapt.trigger('assessments:preReset', this._compatibilityState, this.model);
-    Adapt.trigger('scoring:assessment:preReset', this);
-    this.rawQuestions.forEach(model => model.reset(this.resetConfig._questionsType, true));
-    this.rawPresentationComponents.forEach(model => model.reset(this.resetConfig._presentationComponentsType, true));
-    this.attempts.reset(this.isSoftReset);
-    this._attempt = new Attempt(this);
-    await Adapt.deferUntilCompletionChecked();
-    if (this._isBackwardCompatible) Adapt.trigger('assessments:reset', this._compatibilityState, this.model);
-    super.reset();
-    if (this.canReload) this.reload();
-    _.defer(() => {
-      if (this._isBackwardCompatible) Adapt.trigger('assessments:postReset', this._compatibilityState, this.model);
-      Adapt.trigger('scoring:assessment:postReset', this);
-    });
+  get state() {
+    if (this.isIntersectedSet) return null;
+    return (this._state = this._state || new AssessmentState({ set: this }));
   }
 
   /**
-   * Reload the page and scroll to element if configured
+   * Returns whether the assessment is in session
+   * @returns {boolean}
    */
-  reload() {
-    const id = this.resetConfig._scrollTo ? this.model.get('_id') : Location._currentId;
-    Router.navigate(`#/id/${id}`, { replace: true, trigger: true });
-  }
-
-  /**
-   * Save the state to offlineStorage
-   * @todo component/block data required to restore which models were used across sessions when banking not used? Not needed for restoring correctness as before. Needed for role selectors?
-   * @todo Have been cases where saving the scores etc was useful for amending issues with user data in xAPI.
-   * @todo `score` and `correctness` needed if treating "soft" reset assessments as completed. Could we use question attempts model for restoration instead - would only work if questions can't be reset in component view, so aligns with assessment attempts?
-   * @todo Need `minScore` and `maxScore` if using banking?
-   */
-  save() {
-    const data = OfflineStorage.get(saveStateName) ?? {};
-    data[this.id] = OfflineStorage.serialize(this.saveState);
-    OfflineStorage.set(saveStateName, data);
-  }
-
-  /**
-   * Returns the model containing the `_scoringAssessment` config
-   * @returns {AdaptModel}
-   */
-  get model() {
-    return this._model;
-  }
-
-  /**
-   * @override
-   */
-  get rawModels() {
-    return this.model.getChildren().models;
-  }
-
-  /**
-   * @override
-   */
-  get models() {
-    return this.filterModels(this.rawModels);
+  get isInSession() {
+    return this._isInSession;
   }
 
   /**
@@ -256,35 +97,27 @@ export default class AssessmentSet extends ScoringSet {
     return this.model.get('_requireCompletionOf') === Number.POSITIVE_INFINITY;
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get minScore() {
-    if (this.isComplete && !this.attempt?.isInSession) return this.attempts.last.minScore;
+    if (!this.isIntersectedSet && this.isComplete && !this.isInSession) return this.attempts.last.minScore;
     return super.minScore;
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get maxScore() {
-    if (this.isComplete && !this.attempt?.isInSession) return this.attempts.last.maxScore;
+    if (!this.isIntersectedSet && this.isComplete && !this.isInSession) return this.attempts.last.maxScore;
     return super.maxScore;
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get score() {
-    if (this.isComplete && !this.attempt?.isInSession) return this.attempts.last.score;
+    if (!this.isIntersectedSet && this.isComplete && !this.isInSession) return this.attempts.last.score;
     return super.score;
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get correctness() {
-    if (this.isComplete && !this.attempt?.isInSession) return this.attempts.last.correctness;
+    if (!this.isIntersectedSet && this.isComplete && !this.isInSession) return this.attempts.last.correctness;
     return super.correctness;
   }
 
@@ -328,9 +161,7 @@ export default class AssessmentSet extends ScoringSet {
     return this._resetConfig;
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get canReset() {
     const config = this.isPassed ? this.resetConfig.passedConfig : this.resetConfig.failedConfig;
     return this.attempts.hasRemaining && config._canReset;
@@ -352,7 +183,7 @@ export default class AssessmentSet extends ScoringSet {
    * @returns {boolean}
    */
   get isSoftReset() {
-    const hasQuestions = this.questions.length > 0;
+    const hasQuestions = this.availableQuestions.length > 0;
     const hasPresentationComponents = this.presentationComponents.length > 0;
     const hasQuestionsSoftReset = !hasQuestions || this.resetConfig.questionsType === 'soft';
     const hasPresentationComponentsSoftReset = !hasPresentationComponents || this.resetConfig.presentationComponentsType === 'soft';
@@ -369,32 +200,17 @@ export default class AssessmentSet extends ScoringSet {
     return pageId === locationId && this.model.get('_isRendered');
   }
 
-  /**
-   * Return the attempt currently being used for the objective
-   * @returns {Attempt}
-   */
-  get objectiveAttempt() {
-    if (this.attempts.used >= 1 && this.isSoftReset) return this.attempts.best;
-    return this.attempt;
-  }
-
-  /**
-   * @override
-   */
+  /** @override */
   get isOptional() {
     return this.model.get('_isOptional');
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get isAvailable() {
-    return isAvailableInHierarchy(this.model);
+    return isModelAvailableInHierarchy(this.model);
   }
 
-  /**
-   * @override
-   */
+  /** @override */
   get isStarted() {
     return this.model.get('_isVisited');
   }
@@ -405,117 +221,170 @@ export default class AssessmentSet extends ScoringSet {
    */
   get isAttemptComplete() {
     if (this.isAwaitingChildren || !this.isAvailable) return false;
-    return this.trackableComponents.every(model => model.get('_isInteractionComplete'));
+    const availableTrackableComponents = this.availableTrackableComponents;
+    return availableTrackableComponents.length > 0 && availableTrackableComponents.every(model => model.get('_isInteractionComplete'));
   }
 
   /**
-   * Returns whether the objective for the assessment is completed.
-   * A previously completed assessment which has been "soft" reset, will remain completed.
    * @override
-   * @returns {boolean}
-   */
-  get isObjectiveComplete() {
-    return this.objectiveAttempt.isComplete;
-  }
-
-  /**
-   * Returns whether the assessment is completed.
    * A previously completed assessment which has been "soft" reset, will be deemed completed when not in session.
    * When an attempt is currently in session, it will return that attempt value for use in `ScoringSet.update`.
-   * @override
-   * @returns {boolean}
    */
   get isComplete() {
     if (this.isAwaitingChildren || !this.isAvailable) return false;
-    if (this.attempt?.isInSession) return this.isAttemptComplete;
+    if (this.isInSession) return this.isAttemptComplete;
     if (this.isSoftReset) return this.attempts.wasComplete;
-    return this.trackableComponents.every(model => model.get('_isComplete'));
+    const availableTrackableComponents = this.availableTrackableComponents;
+    return availableTrackableComponents.length > 0 && availableTrackableComponents.every(model => model.get('_isComplete'));
   }
 
   /**
-   * Returns whether the objective for the assessment is passed.
-   * A previously completed assessment which has been "soft" reset, will remain passed.
    * @override
-   * @returns {boolean}
-   */
-  get isObjectivePassed() {
-    return this.objectiveAttempt.isPassed;
-  }
-
-  /**
-   * Returns whether the configured passmark has been achieved.
+   * If passmark is disabled, don't evaluate.
    * A previously completed assessment which has been "soft" reset, will be deemed passed when not in session.
    * When an attempt is currently in session, it will return that attempt value for use in `ScoringSet.update`.
-   * @override
-   * @returns {boolean}
+   * @returns {boolean|null}
    */
   get isPassed() {
-    const isComplete = this.isComplete;
-    if (this.attempt?.isInProgress && !isComplete) return false; // must be completed to pass
-    if (!this.passmark.isEnabled && isComplete) return true; // always pass if complete and passmark is disabled
-    if (!this.attempt?.isInSession && this.isSoftReset) return this.attempts.wasPassed;
+    if (!this.hasPassmark) return null;
+    if (this.attempt?.isInProgress && !this.isComplete) return false; // must be completed to pass
+    if (!this.isInSession && this.isSoftReset) return this.attempts.wasPassed;
     const isScaled = this.passmark.isScaled;
     const score = (isScaled) ? this.scaledScore : this.score;
     const correctness = (isScaled) ? this.scaledCorrectness : this.correctness;
-    const isPassed = score >= this.passmark.score && correctness >= this.passmark.correctness;
-    return isPassed;
+    return score >= this.passmark.score && correctness >= this.passmark.correctness;
+  }
+
+  /** @override */
+  get journal() {
+    if (this.isIntersectedSet) return;
+    return (this._journal = this._journal || new AssessmentUpdateJournal({ set: this }));
+  }
+
+  /** @override */
+  get objective() {
+    if (this.isIntersectedSet) return;
+    return (this._objective = this._objective || new AssessmentObjective({ set: this }));
+  }
+
+  /** @override */
+  register() {
+    triggerCompatibleRegister(this);
+    super.register();
+  }
+
+  /** @override */
+  async onInit() {
+    if (this.isIntersectedSet) return;
+    this._setModelsOwnership();
+    await super.onInit();
+  }
+
+  /**
+   * Set models to be part of the assessment for other plugins
+   * @private
+   */
+  _setModelsOwnership() {
+    this.models.forEach(model => model.setOnChildren({
+      _isPartOfAssessment: true
+    }));
   }
 
   /**
    * @override
+   * @fires Adapt#assessments:restored
+   * @fires Adapt#scoring:assessment:restored
+   * @fires Adapt#scoring:set:restored
    */
-  get logData() {
-    return {
-      ...super.logData,
-      isAttemptComplete: this.isAttemptComplete
-    };
-  }
-
-  /**
-   * Returns the state to save to offlineStorage
-   * @returns {Array}
-   */
-  get saveState() {
-    return [
-      this.attempts.saveState,
-      this.attempt.saveState
-    ];
-  }
-
-  /**
-   * Complete the assessment objective.
-   * Only update the record with the best attempt when using "soft" reset.
-   * @override
-   */
-  _completeObjective() {
-    if (this.subsetParent || (this.attempts.used > 1 && this.attempt?.isInSession && this.isSoftReset && !this.attempts.isBestAttempt(this.attempt))) return;
-    this._setObjectiveScore();
-    this._setObjectiveStatus();
-  }
-
-  /**
-   * @listens AdaptModel#reset
-   */
-  onModelReset() {
-    if (this.isAwaitingChildren || !this.canReset) return;
-    this.reset();
-  }
-
-  /**
-   * @param {Object} location
-   * @listens Adapt#router:location
-   */
-  async onRouterLocation(location) {
-    if (this.attempt) this.attempt.isInSession = false;
-    if (location._contentType !== 'page') return;
-    const model = location._currentModel;
-    if (!hasIntersectingHierarchy([model], this.models)) return;
-    if (this.shouldResetOnRevisit) await this.reset();
+  async onRestore() {
+    if (this.isIntersectedSet) return;
+    const isRestored = this.state.restore();
     this._overrideQuestionsConfig();
-    if (!this.isAttemptComplete) {
-      this.attempt.start();
-      this.save();
+    await super.onRestore();
+    triggerCompatibleRestored(this);
+    if (!isRestored) return false;
+    return true;
+  }
+
+  /** @override */
+  async onStart() {
+    if (this.isIntersectedSet) return;
+    this.attempt.start();
+    this.state.save();
+    await super.onStart();
+  }
+
+  /** @override */
+  async onRestart() {
+    if (this.isIntersectedSet) return;
+    this._isInReset = true;
+    triggerCompatiblePreReset(this);
+    Adapt.trigger('scoring:assessment:preReset', this);
+    this.availableQuestions.forEach(model => model.reset(this.resetConfig.questionsType, true));
+    this.availablePresentationComponents.forEach(model => model.reset(this.resetConfig.presentationComponentsType, true));
+    this.attempts.reset(this.isSoftReset);
+    this._attempt = new Attempt(this);
+    await Adapt.deferUntilCompletionChecked();
+    triggerCompatibleReset(this);
+    await this.onStart();
+    if (this.canReload) this.reload();
+    _.defer(() => {
+      triggerCompatiblePostReset(this);
+      Adapt.trigger('scoring:assessment:postReset', this);
+      this._isInReset = false;
+    });
+    await super.onRestart();
+  }
+
+  /**
+   * Override questions configuration to control marking, feedback and model answers
+   * @private
+   * @todo Add option to `_suppressFeedback` so user can review once completed and no attempts remaining?
+   */
+  _overrideQuestionsConfig() {
+    const isMarkingEnabled = this.marking.isEnabled && !(this.marking.isSuppressed && this.attempts.hasRemaining);
+    const config = this.config?._questions;
+    this.questions.forEach(model => {
+      model.set({
+        _canShowFeedback: config?._canShowFeedback ?? false,
+        _canShowMarking: isMarkingEnabled,
+        _canShowModelAnswer: isMarkingEnabled && (config?._canShowModelAnswer ?? false)
+      }, { pluginName: 'scoringAssessment' });
+    });
+  }
+
+  /** @override */
+  async onUpdate() {
+    if (this.isIntersectedSet) return;
+    this.attempt.update();
+    await super.onUpdate();
+    if (!hasHashChanged(this, this.attempt.hashed())) return;
+    if (Adapt.get('_isStarted')) this.state.save();
+  }
+
+  /** @override */
+  async onVisit() {
+    if (this.isIntersectedSet) return;
+    this._isInSession = true;
+    if (this.attempt.isInProgress) return;
+    if (this._isInReset) return;
+    if (this._isReloading) {
+      this._isReloading = false;
+      return;
     }
+    if (!this.shouldResetOnRevisit) return;
+    offlineStorage.set('location', '');
+    await this.reset();
+    await super.onVisit();
+  }
+
+  /**
+   * Reload the page and scroll to element if configured
+   */
+  reload() {
+    this._isReloading = true;
+    const id = this.resetConfig.scrollTo ? this.model.get('_id') : Location._currentId;
+    Router.navigate(`#/id/${id}`, { replace: true, trigger: true });
   }
 
   /**
@@ -524,19 +393,26 @@ export default class AssessmentSet extends ScoringSet {
    * @fires Adapt#scoring:assessment:complete
    * @fires Adapt#scoring:set:complete
    */
-  onCompleted() {
+  async onCompleted() {
+    if (this.isIntersectedSet) return;
     if (this.attempt.isInProgress) {
       this.attempt.end();
       this.attempts.spend();
       this.attempts.record(this.attempt);
-      this.save();
+      this.state.save();
     }
     if (this.marking.isEnabled && this.marking.isSuppressed && !this.attempts.hasRemaining) {
       this._overrideQuestionsConfig();
-      this.questions.forEach(model => model.refresh());
+      this.availableQuestions.forEach(model => model.refresh());
     }
-    if (this._isBackwardCompatible) Adapt.trigger('assessments:complete', this._compatibilityState, this.model);
-    super.onCompleted();
+    triggerCompatibleComplete(this);
+    await super.onCompleted();
+  }
+
+  /** @override */
+  async onLeave() {
+    this._isInSession = false;
+    await super.onLeave();
   }
 
 }
